@@ -1,0 +1,13 @@
+*.o
+*.so
+sync.sh
+synczero.sh
+tracker
+obj/
+build/
+bin/
+test.mp4
+backup/
+backup.sh
+analysis.txt
+gmon.out
