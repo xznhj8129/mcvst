@@ -99,6 +99,17 @@ void DisplayInterface::draw_track(cv::Mat& frame) {
     cv::putText(frame, "LOCK", cv::Point(10, trackdata.framesize.height - 25), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, 2);
 }
 
+void DisplayInterface::draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, int dist) {
+    //cv::Mat processed = frame.clone();
+    cv::Rect boxroi = cv::Rect(poi.x - (boxsize / 2), poi.y - (boxsize / 2), boxsize, boxsize);
+    std::ostringstream range_label;
+    range_label << std::fixed << std::setprecision(2);
+    range_label << "DIST " << dist;
+    std::string fps_label_str = range_label.str();
+    cv::rectangle(frame, boxroi, osdcolor, linesize);
+    cv::putText(frame, fps_label_str, cv::Point(boxroi.x, boxroi.y + boxsize), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, 2);
+}
+
 void DisplayInterface::draw_search_detections(cv::Mat& frame, SearchResults results) {
 
 

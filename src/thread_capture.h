@@ -14,8 +14,8 @@ int capture_thread(SharedData& sharedData) {
         while (!gotframe and global_running) {
 
         auto startTime2 = std::chrono::steady_clock::now();
-            sharedData.hasNewFrame.store(false);
-            cap_intf.video.read(frame);
+        // sharedData.hasNewFrame.store(false); //debug: causes tracking failure for some reason
+        cap_intf.video.read(frame);
         auto endTime2 = std::chrono::steady_clock::now();
         auto elapsedTime2 = std::chrono::duration_cast<std::chrono::milliseconds>(endTime2 - startTime2);
         //std::cout << "cap time: " << elapsedTime2.count() << "ms" << std::endl;

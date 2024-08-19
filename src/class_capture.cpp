@@ -17,7 +17,7 @@ void CaptureInterface::Init(int captureType, std::string capturePath, cv::Size c
     cv::Mat novideoimage = cv::imread("novideo.png", cv::IMREAD_COLOR);
     cv::cvtColor(novideoimage, novideoimage, cv::COLOR_BGRA2BGR);
 
-    if (captype == 1) {
+    if (captype == 1) { //v4l2
         cv::VideoCapture cap(capturePath, cv::CAP_V4L2);
             
         if (!cap.isOpened()) {
@@ -38,7 +38,7 @@ void CaptureInterface::Init(int captureType, std::string capturePath, cv::Size c
             valid = true;
         }
     } 
-    else if (captype == 2) {
+    else if (captype == 2) { //gstreamer
         cv::VideoCapture cap(capturePath, cv::CAP_GSTREAMER);
         if (!cap.isOpened()) {
             std::cerr << "Error: Couldn't open capture." << std::endl;
@@ -48,7 +48,7 @@ void CaptureInterface::Init(int captureType, std::string capturePath, cv::Size c
             valid = true;
         }
     }
-    else if (captype == 3) {
+    else if (captype == 3) { //file
         cv::VideoCapture cap(capturePath);
         if (!cap.isOpened()) {
             std::cerr << "Error: Couldn't open capture." << std::endl;

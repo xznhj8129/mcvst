@@ -65,7 +65,7 @@ int tracking_thread(SharedData& sharedData) {
         if (settings.trackerType == 0 || cap_intf.no_feed) { // 
            passthrough = true;
         }
-        else if (settings.trackerType == 1) {
+        else if (settings.trackerType == 1) { // OFT
             
             if (trackdata.target_lock) {        
                 cv::Mat frame_gray;
@@ -92,7 +92,7 @@ int tracking_thread(SharedData& sharedData) {
             }
                 
         }
-        else if (settings.trackerType == 2 or settings.trackerType == 3) { //unfinished, implementation sucks
+        else if (settings.trackerType == 2 or settings.trackerType == 3) { // CRST/KCF unfinished, implementation sucks
             std::cout << "target_lock " << trackdata.target_lock << std::endl;
             std::cout << "locked " << trackdata.locked << std::endl;
             std::cout << "first_lock " << trackdata.first_lock << std::endl;

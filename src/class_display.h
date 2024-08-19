@@ -8,6 +8,7 @@
 #include <unistd.h>  // For close()
 #include "globals.h"
 #include "class_track.h"
+#include "class_settings.h"
 
 class DisplayInterface {
 
@@ -26,6 +27,7 @@ class DisplayInterface {
 
         // move this somewhere else
         void draw_track(cv::Mat& frame);
+        void draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, int dist);
         void draw_search_detections(cv::Mat& frame, SearchResults results);
         void draw_cornerbox(cv::Mat& frame, cv::Point poi, int boxsize);
 

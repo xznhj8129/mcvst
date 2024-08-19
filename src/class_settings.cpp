@@ -16,6 +16,12 @@ void SettingsClass::Init(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
 
+        if ((arg.find("--help") == 0)|| (arg.find("--h") == 0)) {
+            
+            global_running.store(false);
+            exit(0);
+        }
+
         if (arg.find("--config=") == 0) {
             cfgFile = arg.substr(9);
             libconfig::Config config;
