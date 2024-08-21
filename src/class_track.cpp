@@ -23,36 +23,62 @@ cv::Point TrackData::scaledPoi() {
     return cv::Point(poi.x / image_scale, poi.y / image_scale);
 }
 
+void TrackData::moveVertical(float v) {
+    int move = v * movestep;
+    poi.y =  std::min(std::max(0.f,static_cast<float>(poi.y - move)), static_cast<float>(framesize.height - 1)); 
+    roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
+    lock_change = true;
+    update(poi);
+}
+
+void TrackData::moveHorizontal(float h) {
+    int move = h * movestep;
+    poi.x = std::min(std::max(0.f, static_cast<float>(poi.x + move)), static_cast<float>(framesize.width - 1)); 
+    roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
+    lock_change = true;
+    update(poi);
+}
+
 void TrackData::moveUp() {
     poi.y = std::max(0.f, static_cast<float>(poi.y - movestep)); 
+    roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
+    update(poi);
 }
 
 void TrackData::moveDown() {
     poi.y = std::min(static_cast<float>(poi.y + movestep), static_cast<float>(framesize.height - 1)); 
+    roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
+    update(poi);
 }
 
 void TrackData::moveLeft() {
     poi.x = std::max(0.f, static_cast<float>(poi.x - movestep)); 
+    roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
+    update(poi);
 }
 
 void TrackData::moveRight() {
     poi.x = std::min(static_cast<float>(poi.x + movestep), static_cast<float>(framesize.width - 1)); 
+    roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
+    update(poi);
 }
 
 void TrackData::biggerBox() {
     boxsize = std::max(20, boxsize - 10);
     roi.width = boxsize;
     roi.height = boxsize;
+    update(poi);
 }
 
-void TrackData::TrackData::smallerBox() {
+void TrackData::smallerBox() {
     boxsize = std::min(200, boxsize += 10);
     roi.width = boxsize;
     roi.height = boxsize;
+    update(poi);
 }
 
 void TrackData::update(cv::Point newtgt) {
@@ -79,7 +105,12 @@ void TrackData::lock(const int x, const int y) {
     oftdata.old_points.push_back(poi);
 }
 
-void TrackData::breaklock() {}
+void TrackData::breaklock() {
+    poi = cv::Point(trackdata.framesize.width/2, trackdata.framesize.height/2);
+    roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
+    target_lock = false;
+    locked = false;
+}
 
 void TrackData::changeROI(int keyCode) { //used in window, mmal...
     bool change = false;
@@ -108,17 +139,22 @@ void TrackData::changeROI(int keyCode) { //used in window, mmal...
             smallerBox();
             change = true;
             break;
-        case 32: //space
-            lock(framesize.width/2, framesize.height/2);
-            break;
         case 99: //c
             target_lock = false;
+            locked = false;
             break;
     }
     if (change) {
         update(poi);
         locked = false;
     }
+}
+
+bool TrackData::isPointInROI(const cv::Point2f& point) {
+    return (point.x >= roi.x && 
+            point.x < (roi.x + roi.width) &&
+            point.y >= roi.y &&
+            point.y < (roi.y + roi.height));
 }
 
 void TrackData::guide() {
@@ -129,14 +165,14 @@ void TrackData::guide() {
     //elevation = (((double)center.y / frame_height) - 0.5) * 2;
 
     //velocity not implemented yet
-    if (!guiding and target_lock) {
+    if (!guiding and locked) {
         guiding = true;
         guidance.angvel.x = 0;
         guidance.angvel.y = 0;
         guidance.angaccel.x = 0;
         guidance.angaccel.y = 0;
     }
-    else if (guiding and !target_lock) {
+    else if (guiding and !locked) {
         guiding = false;
     }
     else {

@@ -96,6 +96,7 @@ void DisplayInterface::draw_track(cv::Mat& frame) {
     }
 
     //indicators
+    cv::rectangle(frame, scaledroi, osdcolor, linesize);
     cv::putText(frame, "LOCK", cv::Point(10, trackdata.framesize.height - 25), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, 2);
 }
 

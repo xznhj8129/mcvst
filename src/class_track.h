@@ -31,6 +31,8 @@ class TrackData {
         cv::Point scaledPoi();
         cv::Rect scaledRoi();
         OFTData oftdata;
+        void moveVertical(float v);
+        void moveHorizontal(float h);
         void moveUp();
         void moveDown();
         void moveLeft();
@@ -41,6 +43,7 @@ class TrackData {
         void lock(const int x, const int y);
         void breaklock();
         void changeROI(int keyCode);
+        bool isPointInROI(const cv::Point2f& point);
         void guide();
 
 };

@@ -27,20 +27,21 @@ libopencv-dev
 
 
 ## To do:
+- Fix "bad lock" problem
+- Finish reworking keyboard input (+ocv window)
 - Tracking slew rate limiter
-- Tracking initial lock off-target limitor (initial lock may be far from selected point, reject it and try again)
 - Zoom + OFT zoom track
 - Image stabilization
 - Box display from external input (ie: from externally computed direction from GPS coordinates)
 - Capture: libcamera, rtsp, raspivid
 - Display: rtsp, gstreamer, socket?
-- Input: socket, serial, fifo
+- Input: socket, serial
+- Output: serial
 - Tracker: mosse, canny, etc
 - Tracker params: https://docs.opencv.org/4.9.0/db/dd1/structcv_1_1TrackerKCF_1_1Params.html
 - Search: differentiate yolov5, yolov8; CUDA; more algorithms
 - frame size and scale mess, how functions get true capture frame size
 - finish config file setup
-- rework keyboard input (+ocv window)
 - test latency/framerate
 - synchronize thread workflow
 - test/fix frame jitter on high load
@@ -52,6 +53,7 @@ libopencv-dev
 
 ## Bugs:
 - fix frame losses using libcamerify
+- fix no video screen flashing on lost frames (soft drop vs timeout hard drop)
 - yolo:
     fix frame exchange handling
 - fix segfaults on exit

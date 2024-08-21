@@ -26,3 +26,13 @@ struct SearchDetection {
 };
 
 typedef std::vector<SearchDetection> SearchResults;
+
+struct TrackInputs {
+    bool valid;
+    int lock;
+    int unlock;
+    float updown;
+    float leftright;
+    float boxsize;
+    int exit;
+};

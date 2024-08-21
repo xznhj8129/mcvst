@@ -179,9 +179,15 @@ void SettingsClass::Init(int argc, char** argv) {
     else if (tracktype == "kcf") {trackerType = 2;}
     else if (tracktype == "csrt") {trackerType = 3;}
 
-    if (intype == "") {outputType = 0;}
-    if (intype == "serial") {outputType = 1;}
-    else if (intype == "socket") {outputType = 2;}
+    if (intype == "") {inputType = 0;}
+    if (intype == "serial") {inputType = 1;}
+    else if (intype == "socket") {inputType = 2;}
+    else if (intype == "fifo") {inputType = 3;}
+
+    if (outtype == "") {outputType = 0;}
+    if (outtype == "serial") {outputType = 1;}
+    else if (outtype == "socket") {outputType = 2;}
+    else if (outtype == "fifo") {outputType = 3;}
 
     if (searchtype == "") {searchType = 2;}
     else if (searchtype == "yolo") {searchType = 1;}

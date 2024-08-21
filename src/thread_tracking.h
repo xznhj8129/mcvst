@@ -42,16 +42,17 @@ int tracking_thread(SharedData& sharedData) {
         cv::cvtColor(processframe, frame_gray_init, cv::COLOR_BGR2GRAY);
         cv::goodFeaturesToTrack(frame_gray_init, corners, 100, 0.3, 7); //<configurable>
         termcrit = cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 10, 0.03); //<configurable>
-    } else if (settings.trackerType == 2) {}
+    } 
+    else if (settings.trackerType == 2) {}
     else {
         std::cerr << "Invalid tracker type selected" << std::endl;
         finish_error = true;
     }
+    trackdata.poi = cv::Point(cap_intf.frameSize.width/2, cap_intf.frameSize.height/2);
     
     while (global_running & !finish_error) {
         auto startTime = std::chrono::steady_clock::now();
         bool passthrough = false;
-
 
         std::unique_lock<std::mutex> lock(sharedData.frameMutex);
         sharedData.frameCondVar.wait(lock, [&sharedData] { return sharedData.hasNewFrame.load(); });
@@ -66,8 +67,9 @@ int tracking_thread(SharedData& sharedData) {
            passthrough = true;
         }
         else if (settings.trackerType == 1) { // OFT
-            
-            if (trackdata.target_lock) {        
+            //std::cout << "track loop " << updc << std::endl;
+            if (trackdata.target_lock) {      
+                std::cout << "lock loop " << updc << std::endl;  
                 cv::Mat frame_gray;
                 cv::cvtColor(processframe, frame_gray, cv::COLOR_BGR2GRAY);
                 updc += 1;
@@ -80,15 +82,41 @@ int tracking_thread(SharedData& sharedData) {
                 std::vector<float> errors;
                 
                 cv::calcOpticalFlowPyrLK(frame_gray_init, frame_gray, trackdata.oftdata.old_points, new_points, status, errors, cv::Size(15, 15), 2, termcrit); //<configurable> oft variables
-                frame_gray_init = frame_gray.clone();
-                trackdata.oftdata.old_points = new_points;
-                trackdata.poi = new_points[0];
+                if (trackdata.isPointInROI(new_points[0])) {
+                    std::cout << "good lock " << updc << std::endl;
+                    frame_gray_init = frame_gray.clone();
+                    trackdata.oftdata.old_points = new_points;
+                    trackdata.poi = new_points[0];
 
-                trackdata.lastroi = trackdata.roi;
-                trackdata.roi.x = trackdata.poi.x - (trackdata.boxsize / 2);
-                trackdata.roi.y = trackdata.poi.y - (trackdata.boxsize / 2);
-                trackdata.roi.width = trackdata.boxsize;
-                trackdata.roi.height = trackdata.boxsize;
+                    trackdata.lastroi = trackdata.roi;
+                    trackdata.roi.x = trackdata.poi.x - (trackdata.boxsize / 2);
+                    trackdata.roi.y = trackdata.poi.y - (trackdata.boxsize / 2);
+                    trackdata.roi.width = trackdata.boxsize;
+                    trackdata.roi.height = trackdata.boxsize;
+                    trackdata.locked = true;
+                }
+                else {
+                    std::cout << "fucker " << new_points[0] << " " << trackdata.roi <<std::endl;
+                    bool found = false;
+                    for (size_t i = 0; i < new_points.size(); ++i) {
+                        if (trackdata.isPointInROI(new_points[i])) {
+                            found = true;
+                            trackdata.poi = new_points[i];
+                            trackdata.lastroi = trackdata.roi;
+                            trackdata.roi.x = trackdata.poi.x - (trackdata.boxsize / 2);
+                            trackdata.roi.y = trackdata.poi.y - (trackdata.boxsize / 2);
+                            trackdata.roi.width = trackdata.boxsize;
+                            trackdata.roi.height = trackdata.boxsize;
+                            trackdata.locked = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        std::cout << "bad lock" << std::endl;
+                        trackdata.target_lock = false;
+                        trackdata.locked = false;
+                    }
+                }
             }
                 
         }
@@ -124,7 +152,7 @@ int tracking_thread(SharedData& sharedData) {
             }
         }
 
-        if (trackdata.target_lock) {
+        if (trackdata.locked) {
             trackdata.guide();
             if( trackdata.poi.x < 0 || 
                 trackdata.poi.x > (cap_intf.frameSize.width * trackdata.image_scale) || 
@@ -132,7 +160,7 @@ int tracking_thread(SharedData& sharedData) {
                 trackdata.poi.y > (cap_intf.frameSize.height * trackdata.image_scale)) {
                 std::cout << "Lost track" << std::endl;
                 trackdata.lost_lock = true;
-                trackdata.target_lock = false;
+                trackdata.breaklock();
             }
         }
         

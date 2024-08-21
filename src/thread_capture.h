@@ -31,9 +31,9 @@ int capture_thread(SharedData& sharedData) {
                 gotframe = true;
             } else {
                 //std::lock_guard<std::mutex> lock(sharedData.frameMutex);
-                cap_intf.novideo.copyTo(sharedData.searchFrame);
-                cap_intf.novideo.copyTo(sharedData.trackFrame);
-                cap_intf.novideo.copyTo(sharedData.displayFrame);
+                //cap_intf.novideo.copyTo(sharedData.searchFrame); //debug: causes tracking loss when using real camera? 
+                //cap_intf.novideo.copyTo(sharedData.trackFrame);
+                //cap_intf.novideo.copyTo(sharedData.displayFrame);
                 sharedData.hasNewFrame.store(false);
                 sharedData.frameCondVar.notify_all();
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));

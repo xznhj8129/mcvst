@@ -51,8 +51,9 @@ int display_thread(SharedData& sharedData) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
             
-            if (trackdata.target_lock) {display_intf.draw_track(frame);}
-            else if (settings.showPipper) {display_intf.draw_cornerbox(frame, cv::Point(frame.cols/2, frame.rows/2), trackdata.boxsize);}
+            //cv::rectangle(frame, trackdata.scaledRoi(), display_intf.osdcolor, display_intf.linesize);
+            if (trackdata.locked) {display_intf.draw_track(frame);}
+            else if (settings.showPipper) {display_intf.draw_cornerbox(frame, cv::Point(trackdata.poi.x, trackdata.poi.y), trackdata.boxsize);}
 
             if (settings.showFPS) {
                 if (frame_count >= 30) {

@@ -33,8 +33,9 @@ int output_thread(SharedData& sharedData) {
     bool finish_error;
 
     // insert thread sleeper here
+    if (settings.outputType==1) {} // serial
 
-    if (settings.outputType==1) {
+    else if (settings.outputType==2) { // socket
         int serverSocket, clientSocket;
         struct sockaddr_in serverAddr, clientAddr;
         socklen_t clientLen = sizeof(clientAddr);
@@ -73,6 +74,28 @@ int output_thread(SharedData& sharedData) {
             clientThread.detach(); // Detach the thread to let it run independently
         }
         close(serverSocket);
+    }
+    else if (settings.outputType==3) { // fifo
+        while (global_running) { 
+            std::ofstream fifo;
+            std::string fifo_path = "/tmp/mcvst_output";
+            fifo.open(fifo_path);
+
+            if (!fifo.is_open()) {
+                std::cerr << "Error: Could not open FIFO file." << std::endl;
+            }
+            else {
+                double data_az = trackdata.guidance.angle.x; // might need to do atomic for thread safety
+                double data_el = trackdata.guidance.angle.y; //atom_elevation.load();
+                int data_mode = trackdata.locked;
+                std::string data = std::to_string(data_mode) + "," + std::to_string(data_az) + ","+std::to_string(data_el);
+                fifo << data << std::endl;
+                fifo.close();
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
+        }
+
+
     }
 
     if (global_debug_print) {std::cout << "output thread finished" << std::endl;}
