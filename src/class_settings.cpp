@@ -51,23 +51,28 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "capturepath"; capturePath = config.lookup(line).c_str();
                 line = "capformat"; capFormat = config.lookup(line).c_str();
                 line = "capsize"; 
-                std::string capsizearg = config.lookup(line).c_str();
+                capSize.width = config.lookup(line)[0];
+                capSize.height = config.lookup(line)[1];
+                /*std::string capsizearg = config.lookup(line).c_str();
                 if (capsizearg == "auto") { }
                 else {
                     capSize.width = config.lookup(line)[0];
                     capSize.height = config.lookup(line)[1];
-                }
+                }*/
                 line = "cap_wb"; capWB = config.lookup(line);
                 line = "cap_br"; capBrightness = config.lookup(line);
                 line = "cap_contrast"; capContrast = config.lookup(line);
                 line = "cap_saturation"; capSat = config.lookup(line);
+                line = "showfps"; showFPS = config.lookup(line);
 
                 line = "osd_color"; color = config.lookup(line).c_str();
                 line = "osd_linesize"; osdLinesize = config.lookup(line);
                 
                 line = "display"; dtype = config.lookup(line).c_str();
                 line = "displaypath"; displayPath = config.lookup(line).c_str();
-                line = "windowres"; windowSize = cv::Size(config.lookup(line)[0], config.lookup(line)[1]);
+                line = "displaysize"; 
+                windowSize.width = config.lookup(line)[0];
+                windowSize.height = config.lookup(line)[1];
                 line = "scale"; processScale = config.lookup(line);
                 line = "tracker"; tracktype = config.lookup(line).c_str();
                 line = "markertype"; markertype = config.lookup(line).c_str();
@@ -91,17 +96,22 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "dnn_model_classes"; search_dnn_model_classes = config.lookup(line).c_str();
                 line = "dnn_model_dim"; search_dnn_model_dim =  config.lookup(line);
                 line = "target_class"; search_target_class = config.lookup(line);
+                line = "yolo_input_width"; search_yolo_width = config.lookup(line);
+                line = "yolo_input_height"; search_yolo_height = config.lookup(line);
                 line = "target_conf"; search_target_conf = config.lookup(line);                
                 line = "auto_lock"; search_auto_lock = config.lookup(line);
                 line = "score_threshold"; search_score_threshold = config.lookup(line);
                 line = "nms_threshold"; search_nms_threshold = config.lookup(line);
                 line = "confidence_threshold"; search_confidence_threshold = config.lookup(line);
-                line = "detect_zone"; 
+                line = "rows"; search_dnn_model_rows = config.lookup(line);
+                line = "search_limit_zone"; search_limit_zone = config.lookup(line);
+                line = "search_zone"; 
 
-                search_detect_zone.x = config.lookup(line)[0];
-                search_detect_zone.y = config.lookup(line)[1];
-                search_detect_zone.width = config.lookup(line)[2];
-                search_detect_zone.height = config.lookup(line)[3];
+                search_zone[0] = config.lookup(line)[0];
+                search_zone[1] = config.lookup(line)[1];
+                search_zone[2] = config.lookup(line)[2];
+                search_zone[3] = config.lookup(line)[3];
+
                 search_dnn_setup = true;
 
                 
@@ -137,7 +147,7 @@ void SettingsClass::Init(int argc, char** argv) {
             else if (arg.find("--tracker=") == 0) {tracktype = arg.substr(10);} 
             else if (arg.find("--trackmarker=") == 0) {markertype = arg.substr(14);} 
             else if (arg.find("--pipper") == 0) {showPipper = true;} 
-            else if (arg.find("--search=") == 0) {searchtype = arg.substr(10);} 
+            else if (arg.find("--search=") == 0) {searchtype = arg.substr(9);} 
             else if (arg.find("--output=") == 0) {outtype = arg.substr(9);} 
             else if (arg.find("--outputpath=") == 0) {
                 if (outtype == "socket") {socketport = stoi(arg.substr(13));}
@@ -160,7 +170,9 @@ void SettingsClass::Init(int argc, char** argv) {
     if (dtype == "none") {displayType = 0;} 
     else if (dtype == "" or dtype=="window") {displayType = 1;} 
     else if (dtype == "framebuffer") {displayType = 2;}
-    else if (dtype == "rtsp") {displayType = 3;} 
+    else if (dtype == "gstreamer") {displayType = 3;} 
+    else if (dtype == "rtsp") {displayType = 4;} 
+    else if (dtype == "udp") {displayType = 5;} 
 
     if (captype == "" or captype=="v4l2") {captureType = 1;} 
     else if (captype == "gstreamer") {captureType = 2;}
@@ -178,6 +190,7 @@ void SettingsClass::Init(int argc, char** argv) {
     else if (tracktype == "oft") {trackerType = 1;}
     else if (tracktype == "kcf") {trackerType = 2;}
     else if (tracktype == "csrt") {trackerType = 3;}
+    else if (tracktype == "mosse") {trackerType = 4;}
 
     if (intype == "") {inputType = 0;}
     if (intype == "serial") {inputType = 1;}
@@ -189,13 +202,13 @@ void SettingsClass::Init(int argc, char** argv) {
     else if (outtype == "socket") {outputType = 2;}
     else if (outtype == "fifo") {outputType = 3;}
 
-    if (searchtype == "") {searchType = 2;}
+    if (searchtype == "") {searchType = 0;}
     else if (searchtype == "yolo") {searchType = 1;}
 
     if (capturePath == "") {capturePath = "/dev/video0";}
     if (processScale==0) {processScale = 1;}
-    if (capSize.width==0) {capSize.width = 640;}
-    if (capSize.height==0) {capSize.height = 480;}
+    //if (capSize.width==0) {capSize.width = 640;}
+    //if (capSize.height==0) {capSize.height = 480;}
     if (capBrightness==0) {capBrightness = 50;}
     if (osdLinesize==0) {osdLinesize = 1;}
     if (osdColor=="") {osdColor = "white";}

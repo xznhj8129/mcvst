@@ -51,13 +51,14 @@ class SettingsClass {
         double search_score_threshold;
         double search_nms_threshold;
         double search_confidence_threshold;
-        int search_yolo_width;
-        int search_yolo_height;
+        double search_yolo_width;
+        double search_yolo_height;
         std::string search_dnn_model;
         std::string search_dnn_model_classes;
         int search_dnn_model_dim;
         int search_dnn_model_rows;
-        cv::Rect search_detect_zone;
+        bool search_limit_zone;
+        double search_zone[4];
 
         SettingsClass();
         void Init(int argc, char** argv);

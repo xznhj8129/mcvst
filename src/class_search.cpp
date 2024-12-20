@@ -7,12 +7,13 @@ SearchInterface::SearchInterface(){};
 //"yolomodels/yolov5s-visdrone.onnx"
 void SearchInterface::Init() {
     std::vector<cv::Scalar> colors = {cv::Scalar(255, 255, 0), cv::Scalar(0, 255, 0), cv::Scalar(0, 255, 255), cv::Scalar(255, 0, 0)};
-    cv::dnn::Net net;
     std::vector<std::string> class_list;
     cv::Size procSize((double)cap_intf.frameSize.width * trackdata.image_scale, (double)cap_intf.frameSize.height * trackdata.image_scale);
-
+    std::cout << settings.searchType << std::endl;
     if (settings.searchType==1) {
+        std::cout << "Loading net: "<<settings.search_dnn_model<<std::endl;
         auto result = cv::dnn::readNet(settings.search_dnn_model);
+
         if (settings.use_cuda)    {
             std::cout << "Attempting to use CUDA\n";
             result.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
@@ -24,6 +25,11 @@ void SearchInterface::Init() {
             result.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
         }
         net = result;
+        if (result.empty()) {
+            std::cerr << "Error: Model not loaded, net empty" << std::endl;
+            global_running.store(false);
+            return;
+        }
         std::vector<std::string> class_list = search_intf.load_class_list();
         setup = true;
     }
@@ -52,8 +58,7 @@ cv::Mat SearchInterface::format_yolov5(const cv::Mat &source) {
 void SearchInterface::detect(cv::Mat &image, SearchResults &output) {
     cv::Mat blob;
     auto input_image = format_yolov5(image);
-
-    cv::dnn::blobFromImage(input_image, blob, 1. / 255., cv::Size(settings.search_yolo_width, settings.search_yolo_height), cv::Scalar(), true, false);
+    cv::dnn::blobFromImage(input_image, blob, 1. / 255., cv::Size(settings.search_yolo_width, settings.search_yolo_height), cv::Scalar(), true, false);//settings.search_yolo_width, settings.search_yolo_height), cv::Scalar(), true, false);
     net.setInput(blob);
     std::vector<cv::Mat> outputs;
     net.forward(outputs, net.getUnconnectedOutLayersNames());
@@ -61,7 +66,6 @@ void SearchInterface::detect(cv::Mat &image, SearchResults &output) {
     float y_factor = input_image.rows / settings.search_yolo_height;
 
     float *data = (float *)outputs[0].data;
-
     std::vector<int> class_ids;
     std::vector<float> confidences;
     std::vector<cv::Rect> boxes;
@@ -75,10 +79,9 @@ void SearchInterface::detect(cv::Mat &image, SearchResults &output) {
             cv::Point class_id;
             double max_class_score;
             minMaxLoc(scores, 0, &max_class_score, 0, &class_id);
-            if (max_class_score > yolo_SCORE_THRESHOLD)            {
-
+            if (max_class_score > settings.search_score_threshold) {
                 confidences.push_back(confidence);
-
+                
                 class_ids.push_back(class_id.x);
 
                 float x = data[0];

@@ -91,13 +91,12 @@ void DisplayInterface::draw_track(cv::Mat& frame) {
 
     if (settings.trackMarker == 6 || settings.trackMarker == 2) { //lancet or crosshair
         //center cross
-        cv::line(frame, cv::Point(scaledpoi.x - (trackdata.boxsize/5) , scaledpoi.y), cv::Point(scaledpoi.x + (trackdata.boxsize / 5), scaledpoi.y), osdcolor, 1);
-        cv::line(frame, cv::Point(scaledpoi.x, scaledpoi.y - (trackdata.boxsize/5)), cv::Point(scaledpoi.x, scaledpoi.y + (trackdata.boxsize/5)), osdcolor, 1);
+        cv::line(frame, cv::Point(scaledpoi.x - (trackdata.boxsize/5) , scaledpoi.y), cv::Point(scaledpoi.x + (trackdata.boxsize / 5), scaledpoi.y), osdcolor, linesize);
+        cv::line(frame, cv::Point(scaledpoi.x, scaledpoi.y - (trackdata.boxsize/5)), cv::Point(scaledpoi.x, scaledpoi.y + (trackdata.boxsize/5)), osdcolor, linesize);
     }
 
     //indicators
-    cv::rectangle(frame, scaledroi, osdcolor, linesize);
-    cv::putText(frame, "LOCK", cv::Point(10, trackdata.framesize.height - 25), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, 2);
+    cv::putText(frame, "LOCK", cv::Point(10, trackdata.framesize.height - 25), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, linesize);
 }
 
 void DisplayInterface::draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, int dist) {
@@ -108,7 +107,7 @@ void DisplayInterface::draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize
     range_label << "DIST " << dist;
     std::string fps_label_str = range_label.str();
     cv::rectangle(frame, boxroi, osdcolor, linesize);
-    cv::putText(frame, fps_label_str, cv::Point(boxroi.x, boxroi.y + boxsize), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, 2);
+    cv::putText(frame, fps_label_str, cv::Point(boxroi.x, boxroi.y + boxsize), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, linesize);
 }
 
 void DisplayInterface::draw_search_detections(cv::Mat& frame, SearchResults results) {

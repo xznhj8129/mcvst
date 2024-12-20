@@ -25,14 +25,14 @@ int main(int argc, char** argv) {
 
     std::thread captureThread(capture_thread, std::ref(sharedData));
     std::thread displayThread(display_thread, std::ref(sharedData));
-    //std::thread searchThread(search_thread, std::ref(sharedData));
+    std::thread searchThread(search_thread, std::ref(sharedData));
     std::thread trackThread(tracking_thread, std::ref(sharedData));
     std::thread inputThread(input_thread, std::ref(sharedData));
     std::thread outputThread(output_thread, std::ref(sharedData));
 
     captureThread.join();
     displayThread.join();
-    //searchThread.join();
+    searchThread.join();
     trackThread.join();
     inputThread.join();
     outputThread.join();

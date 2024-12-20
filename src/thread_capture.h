@@ -29,11 +29,18 @@ int capture_thread(SharedData& sharedData) {
                 sharedData.hasNewFrame.store(true);
                 sharedData.frameCondVar.notify_all();
                 gotframe = true;
+                cap_intf.no_feed = false;
+                if (settings.capSize.height == 0 && settings.capSize.width==0) {
+                    settings.capSize.width = frame.cols;
+                    settings.capSize.height = frame.rows;
+                    std::cout << "Set size to " << settings.capSize.width << "x" << settings.capSize.height << std::endl;
+                }
             } else {
                 //std::lock_guard<std::mutex> lock(sharedData.frameMutex);
                 //cap_intf.novideo.copyTo(sharedData.searchFrame); //debug: causes tracking loss when using real camera? 
                 //cap_intf.novideo.copyTo(sharedData.trackFrame);
                 //cap_intf.novideo.copyTo(sharedData.displayFrame);
+                cap_intf.no_feed = true;
                 sharedData.hasNewFrame.store(false);
                 sharedData.frameCondVar.notify_all();
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));

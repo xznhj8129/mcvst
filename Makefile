@@ -5,10 +5,10 @@ TARGET := tracker
 SRC_DIR := src
 OBJ_DIR := obj
 
-CPPFLAGS := -Iinclude -MMD -MP `pkg-config opencv4 --cflags`
+CPPFLAGS := -Iinclude -MMD -MP $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --cflags)
 CXXFLAGS := -std=c++17 -Wall -Wextra -Ofast -march=native -mcpu=native -mtune=native -pg
-LDFLAGS  := $(shell pkg-config --libs-only-L opencv4)
-LDLIBS   := $(shell pkg-config --libs-only-l opencv4) -pthread -lconfig++ -pg
+LDFLAGS  := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-L)
+LDLIBS   := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-l) -pthread -lconfig++ -lcurl -pg
 
 SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS := $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
@@ -28,7 +28,6 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 clean:
 	rm -rf $(OBJ_DIR) 
-	rm $(TARGET)
 
 .PHONY: all clean
 

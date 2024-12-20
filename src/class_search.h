@@ -6,6 +6,7 @@
 #include "class_track.h"
 #include "class_capture.h"
 #include "class_settings.h"
+#include <cxxopts.hpp>
 
 class SearchInterface {
     private:

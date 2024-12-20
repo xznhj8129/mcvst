@@ -128,7 +128,8 @@ int input_thread(SharedData& sharedData) {
             while (global_running) {
                 c = getchar();
                 int keyCode = 0; 
-                if (c == ' ') {input_command(1);} 
+                if (c == ' ') {
+                    input_command(1);} 
                 else if (c == 27) { // ESC sequence for arrow keys
                     getchar(); // Skip the '['
                     c = getchar();

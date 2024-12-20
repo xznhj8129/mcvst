@@ -150,11 +150,11 @@ void TrackData::changeROI(int keyCode) { //used in window, mmal...
     }
 }
 
-bool TrackData::isPointInROI(const cv::Point2f& point) {
-    return (point.x >= roi.x && 
-            point.x < (roi.x + roi.width) &&
-            point.y >= roi.y &&
-            point.y < (roi.y + roi.height));
+bool TrackData::isPointInROI(const cv::Point2f& point, float tolerance) {
+    return (point.x >= (poi.x - (boxsize * tolerance)) && 
+            point.x < (poi.x + (boxsize * tolerance)) &&
+            point.y >= (poi.y - (boxsize * tolerance)) &&
+            point.y < (poi.y + (boxsize * tolerance)));
 }
 
 void TrackData::guide() {

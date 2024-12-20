@@ -58,7 +58,7 @@ int tracking_thread(SharedData& sharedData) {
         sharedData.frameCondVar.wait(lock, [&sharedData] { return sharedData.hasNewFrame.load(); });
         cv::Mat frame = sharedData.trackFrame.clone();
         lock.unlock();
-
+        float tolerance = 10.0;
         processframe = cv::Mat();
         if (trackdata.image_scale!=1.0) {cv::resize(frame, processframe, process_size);}
         else {processframe = frame.clone();}
@@ -69,7 +69,7 @@ int tracking_thread(SharedData& sharedData) {
         else if (settings.trackerType == 1) { // OFT
             //std::cout << "track loop " << updc << std::endl;
             if (trackdata.target_lock) {      
-                std::cout << "lock loop " << updc << std::endl;  
+                //std::cout << "lock loop " << updc << std::endl;  
                 cv::Mat frame_gray;
                 cv::cvtColor(processframe, frame_gray, cv::COLOR_BGR2GRAY);
                 updc += 1;
@@ -82,8 +82,9 @@ int tracking_thread(SharedData& sharedData) {
                 std::vector<float> errors;
                 
                 cv::calcOpticalFlowPyrLK(frame_gray_init, frame_gray, trackdata.oftdata.old_points, new_points, status, errors, cv::Size(15, 15), 2, termcrit); //<configurable> oft variables
-                if (trackdata.isPointInROI(new_points[0])) {
-                    std::cout << "good lock " << updc << std::endl;
+                //std::cout << trackdata.target_lock << " " << trackdata.locked << " poi " << trackdata.poi << " roi " << trackdata.roi << std::endl;
+                if (trackdata.isPointInROI(new_points[0], tolerance)) {
+                    //std::cout << "good lock " << updc << std::endl;
                     frame_gray_init = frame_gray.clone();
                     trackdata.oftdata.old_points = new_points;
                     trackdata.poi = new_points[0];
@@ -93,37 +94,21 @@ int tracking_thread(SharedData& sharedData) {
                     trackdata.roi.y = trackdata.poi.y - (trackdata.boxsize / 2);
                     trackdata.roi.width = trackdata.boxsize;
                     trackdata.roi.height = trackdata.boxsize;
-                    trackdata.locked = true;
+                    if (trackdata.target_lock) {trackdata.locked = true;}
                 }
                 else {
-                    std::cout << "fucker " << new_points[0] << " " << trackdata.roi <<std::endl;
-                    bool found = false;
-                    for (size_t i = 0; i < new_points.size(); ++i) {
-                        if (trackdata.isPointInROI(new_points[i])) {
-                            found = true;
-                            trackdata.poi = new_points[i];
-                            trackdata.lastroi = trackdata.roi;
-                            trackdata.roi.x = trackdata.poi.x - (trackdata.boxsize / 2);
-                            trackdata.roi.y = trackdata.poi.y - (trackdata.boxsize / 2);
-                            trackdata.roi.width = trackdata.boxsize;
-                            trackdata.roi.height = trackdata.boxsize;
-                            trackdata.locked = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        std::cout << "bad lock" << std::endl;
-                        trackdata.target_lock = false;
-                        trackdata.locked = false;
-                    }
+                    //std::cout << "fucker " << new_points[0] << " " << trackdata.roi <<std::endl;
+                    //std::cout << "bad lock" << std::endl;
+                    trackdata.target_lock = false;
+                    trackdata.locked = false;
                 }
             }
                 
         }
         else if (settings.trackerType == 2 or settings.trackerType == 3) { // CRST/KCF unfinished, implementation sucks
-            std::cout << "target_lock " << trackdata.target_lock << std::endl;
-            std::cout << "locked " << trackdata.locked << std::endl;
-            std::cout << "first_lock " << trackdata.first_lock << std::endl;
+            //std::cout << "target_lock " << trackdata.target_lock << std::endl;
+            //std::cout << "locked " << trackdata.locked << std::endl;
+            //std::cout << "first_lock " << trackdata.first_lock << std::endl;
 
             if (trackdata.target_lock & (!trackdata.locked || (trackdata.first_lock && !ok))) {
                 std::cout << "kcf1" << std::endl;
@@ -148,7 +133,10 @@ int tracking_thread(SharedData& sharedData) {
                 trackdata.poi.y = trackdata.roi.y + (trackdata.boxsize/2);
                 ok = tracker->update(processframe, trackdata.roi);
 
-                if (!ok) {trackdata.lost_lock = true;}
+                if (!ok) {
+                    trackdata.lost_lock = true;
+                    trackdata.locked = false;
+                    }
             }
         }
 

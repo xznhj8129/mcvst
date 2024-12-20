@@ -43,7 +43,7 @@ class TrackData {
         void lock(const int x, const int y);
         void breaklock();
         void changeROI(int keyCode);
-        bool isPointInROI(const cv::Point2f& point);
+        bool isPointInROI(const cv::Point2f& point, float tolerance);
         void guide();
 
 };
