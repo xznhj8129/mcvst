@@ -1,19 +1,53 @@
 # MCVST: Multimode Computer Vision Search and Track
-Simple homebrewed object recognition and tracking for AI-enabled robotics using the Raspberry Pi or Nvidia Jetson, my second serious C++ project. 
+Simple homebrewed object recognition and tracking for AI-enabled robotics using the Raspberry Pi or Nvidia Jetson, my second serious C++ project. \
+Far from ready yet, lots of basic stuff to fix. Use settings file for now.
 
 ## Requirements:
 libopencv-dev
 
 ## Usage:
+Use command arguments or cfg file: ./tracker --config=settings.cfg\
+
+### Capture:
+* v4l2 
+* gstreamer
+* file
+* udp
+
+### Display:
+* OpenCV window (click to track)
+* Framebuffer for no-GUI Raspberry Pi 2
+* gstreamer
+
+### Input:
+* Opencv window mouse/keyboard
+* Keyboard in terminal
+* FIFO
+* socket
+* serial
+
+### Output:
+* FIFO
+* socket
+* serial
+
+### Tracker types:
+* Lucas-Kanade Sparse Optical Flow
+* Kernelized Correlation Filter
+* CSRT
+
+### Search types:
+* YOLOv5
+
 ### OpenCV Window
-Click: Lock
-Spacebar: Lock
-A: Track box bigger
-S: Track box smaller
-C: Reset lock
-Arrows: Move track
- : Search Toggle
- : Auto-lock Toggle
+Click: Lock\
+Spacebar: Lock\
+A: Track box bigger\
+S: Track box smaller\
+C: Reset lock\
+Arrows: Move track\
+ : Search Toggle\
+ : Auto-lock Toggle\
 
 ## Arguments:
 --config=settings.cfg (get program settings from file instead of long terminal command)\
