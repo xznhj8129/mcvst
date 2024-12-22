@@ -51,14 +51,14 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "capturepath"; capturePath = config.lookup(line).c_str();
                 line = "capformat"; capFormat = config.lookup(line).c_str();
                 line = "capsize"; 
-                capSize.width = config.lookup(line)[0];
-                capSize.height = config.lookup(line)[1];
-                /*std::string capsizearg = config.lookup(line).c_str();
+                //capSize.width = config.lookup(line)[0];
+                //capSize.height = config.lookup(line)[1];
+                std::string capsizearg = config.lookup(line).c_str();
                 if (capsizearg == "auto") { }
                 else {
                     capSize.width = config.lookup(line)[0];
                     capSize.height = config.lookup(line)[1];
-                }*/
+                }
                 line = "cap_wb"; capWB = config.lookup(line);
                 line = "cap_br"; capBrightness = config.lookup(line);
                 line = "cap_contrast"; capContrast = config.lookup(line);
@@ -71,8 +71,8 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "display"; dtype = config.lookup(line).c_str();
                 line = "displaypath"; displayPath = config.lookup(line).c_str();
                 line = "displaysize"; 
-                windowSize.width = config.lookup(line)[0];
-                windowSize.height = config.lookup(line)[1];
+                displaySize.width = config.lookup(line)[0];
+                displaySize.height = config.lookup(line)[1];
                 line = "scale"; processScale = config.lookup(line);
                 line = "tracker"; tracktype = config.lookup(line).c_str();
                 line = "markertype"; markertype = config.lookup(line).c_str();
@@ -176,7 +176,7 @@ void SettingsClass::Init(int argc, char** argv) {
 
     if (captype == "" or captype=="v4l2") {captureType = 1;} 
     else if (captype == "gstreamer") {captureType = 2;}
-    else if (captype == "file") {captureType = 3;}
+    else if (captype == "opencv") {captureType = 3;}
     else if (captype == "rtsp") {captureType = 4;}
 
     if (markertype == "" or markertype=="box") {trackMarker = 1;} 

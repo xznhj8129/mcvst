@@ -1,10 +1,10 @@
 #include "class_track.h"
 
-TrackData trackdata;
+TrackInterface track_intf;
 
-TrackData::TrackData() {}
+TrackInterface::TrackInterface() {}
 
-void TrackData::Init(cv::Size cap_image_size, double scale) {
+void TrackInterface::Init(cv::Size cap_image_size, double scale) {
     //std::cout << "init imagesize " << cap_image_size << std::endl;
 
     if ((cap_image_size.height != 0) & (cap_image_size.width != 0)) {
@@ -15,15 +15,15 @@ void TrackData::Init(cv::Size cap_image_size, double scale) {
     boxsize = init_boxsize * scale;
 }
 
-cv::Rect TrackData::scaledRoi() {
+cv::Rect TrackInterface::scaledRoi() {
     return cv::Rect(roi.x / image_scale, roi.y / image_scale, roi.width / image_scale, roi.height / image_scale);
 }
 
-cv::Point TrackData::scaledPoi() {
+cv::Point TrackInterface::scaledPoi() {
     return cv::Point(poi.x / image_scale, poi.y / image_scale);
 }
 
-void TrackData::moveVertical(float v) {
+void TrackInterface::moveVertical(float v) {
     int move = v * movestep;
     poi.y =  std::min(std::max(0.f,static_cast<float>(poi.y - move)), static_cast<float>(framesize.height - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
@@ -31,7 +31,7 @@ void TrackData::moveVertical(float v) {
     update(poi);
 }
 
-void TrackData::moveHorizontal(float h) {
+void TrackInterface::moveHorizontal(float h) {
     int move = h * movestep;
     poi.x = std::min(std::max(0.f, static_cast<float>(poi.x + move)), static_cast<float>(framesize.width - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
@@ -39,49 +39,49 @@ void TrackData::moveHorizontal(float h) {
     update(poi);
 }
 
-void TrackData::moveUp() {
+void TrackInterface::moveUp() {
     poi.y = std::max(0.f, static_cast<float>(poi.y - movestep)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
 }
 
-void TrackData::moveDown() {
+void TrackInterface::moveDown() {
     poi.y = std::min(static_cast<float>(poi.y + movestep), static_cast<float>(framesize.height - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
 }
 
-void TrackData::moveLeft() {
+void TrackInterface::moveLeft() {
     poi.x = std::max(0.f, static_cast<float>(poi.x - movestep)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
 }
 
-void TrackData::moveRight() {
+void TrackInterface::moveRight() {
     poi.x = std::min(static_cast<float>(poi.x + movestep), static_cast<float>(framesize.width - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
 }
 
-void TrackData::biggerBox() {
+void TrackInterface::biggerBox() {
     boxsize = std::max(20, boxsize - 10);
     roi.width = boxsize;
     roi.height = boxsize;
     update(poi);
 }
 
-void TrackData::smallerBox() {
+void TrackInterface::smallerBox() {
     boxsize = std::min(200, boxsize += 10);
     roi.width = boxsize;
     roi.height = boxsize;
     update(poi);
 }
 
-void TrackData::update(cv::Point newtgt) {
+void TrackInterface::update(cv::Point newtgt) {
     poi = newtgt;
     oftdata.old_points.clear();
     oftdata.old_points.push_back(poi);
@@ -90,7 +90,7 @@ void TrackData::update(cv::Point newtgt) {
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
 }
 
-void TrackData::lock(const int x, const int y) {
+void TrackInterface::lock(const int x, const int y) {
     poi = cv::Point(x, y) * image_scale;
     if ((roi.width > 0) & (roi.height > 0)) {
         roi = cv::Rect((x * image_scale) - (roi.width / 2), (y * image_scale) - (roi.height / 2), roi.width, roi.height);
@@ -105,14 +105,14 @@ void TrackData::lock(const int x, const int y) {
     oftdata.old_points.push_back(poi);
 }
 
-void TrackData::breaklock() {
-    poi = cv::Point(trackdata.framesize.width/2, trackdata.framesize.height/2);
+void TrackInterface::breaklock() {
+    poi = cv::Point(track_intf.framesize.width/2, track_intf.framesize.height/2);
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     target_lock = false;
     locked = false;
 }
 
-void TrackData::changeROI(int keyCode) { //used in window, mmal...
+void TrackInterface::changeROI(int keyCode) { //used in window, mmal...
     bool change = false;
     switch (keyCode) {
         case 82: //arrow keys
@@ -150,14 +150,14 @@ void TrackData::changeROI(int keyCode) { //used in window, mmal...
     }
 }
 
-bool TrackData::isPointInROI(const cv::Point2f& point, float tolerance) {
+bool TrackInterface::isPointInROI(const cv::Point2f& point, float tolerance) {
     return (point.x >= (poi.x - (boxsize * tolerance)) && 
             point.x < (poi.x + (boxsize * tolerance)) &&
             point.y >= (poi.y - (boxsize * tolerance)) &&
             point.y < (poi.y + (boxsize * tolerance)));
 }
 
-void TrackData::guide() {
+void TrackInterface::guide() {
     cv::Point scaled = scaledPoi();
     guidance.angle.x = (((double)scaled.x / framesize.width) - 0.5) * 2;;
     guidance.angle.y = (((double)scaled.y / framesize.height) - 0.5) * 2;;

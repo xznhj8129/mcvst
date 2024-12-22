@@ -27,7 +27,7 @@ class DisplayInterface {
 
         // move this somewhere else
         void draw_track(cv::Mat& frame);
-        void draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, int dist);
+        void draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, std::string text);
         void draw_search_detections(cv::Mat& frame, SearchResults results);
         void draw_cornerbox(cv::Mat& frame, cv::Point poi, int boxsize);
 

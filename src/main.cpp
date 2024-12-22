@@ -4,7 +4,7 @@
 #include "threads.h"
 
 //std::unique_ptr<SettingsClass> args;
-//std::unique_ptr<TrackData> global_trackdata;
+//std::unique_ptr<TrackInterface> global_track_intf;
 //std::unique_ptr<CaptureInterface> global_cap;
 //std::unique_ptr<DisplayInterface> global_display;
 
@@ -13,13 +13,13 @@
 int main(int argc, char** argv) {
     //std::shared_ptr<SettingsClass> args = std::make_shared<SettingsClass>(argc, argv);
     //std::shared_ptr<CaptureInterface> global_cap = std::make_shared<CaptureInterface>(args->displayType, args->capturePath, args->capSize);
-    //std::shared_ptr<TrackData> global_trackdata = std::make_shared<TrackData>(args->capSize, args->processScale);
+    //std::shared_ptr<TrackInterface> global_track_intf = std::make_shared<TrackInterface>(args->capSize, args->processScale);
 
     SharedData sharedData;
 
     settings.Init(argc, argv);
     cap_intf.Init(settings.captureType, settings.capturePath, settings.capSize);
-    trackdata.Init(cap_intf.frameSize, settings.processScale);
+    track_intf.Init(cap_intf.frameSize, settings.processScale);
     display_intf.Init(settings.displayType);
     search_intf.Init();
 

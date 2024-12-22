@@ -58,41 +58,41 @@ void input_command(int input) {
     */
     switch (input) {
         case 1: 
-            if (!trackdata.target_lock) {
-                trackdata.lock(trackdata.poi.x, trackdata.poi.y);
+            if (!track_intf.target_lock) {
+                track_intf.lock(track_intf.poi.x, track_intf.poi.y);
             }
             else {
-                trackdata.target_lock = false;
-                trackdata.locked = false;
+                track_intf.target_lock = false;
+                track_intf.locked = false;
             }
             break;
 
         case 2: 
-            trackdata.breaklock();
+            track_intf.breaklock();
             break;
 
         case 3: 
-            trackdata.moveUp();
+            track_intf.moveUp();
             break;
 
         case 4: 
-            trackdata.moveDown();
+            track_intf.moveDown();
             break;
 
         case 5: 
-            trackdata.moveLeft();
+            track_intf.moveLeft();
             break;
 
         case 6: 
-            trackdata.moveRight();
+            track_intf.moveRight();
             break;
 
         case 7: 
-            trackdata.biggerBox();
+            track_intf.biggerBox();
             break;
 
         case 8: 
-            trackdata.smallerBox();
+            track_intf.smallerBox();
             break;
 
         case 9:
@@ -106,8 +106,8 @@ void input_vec(TrackInputs inputs, int last_btn1) {
 
         if (inputs.lock && last_btn1 == 0) {input_command(1);}
         else if (inputs.unlock) {input_command(2);}
-        if (inputs.updown >0.1 || inputs.updown < -0.1) {trackdata.moveVertical(inputs.updown);}  // UP_ARROW
-        if (inputs.leftright >0.1 || inputs.leftright < -0.1) {trackdata.moveHorizontal(inputs.leftright);}  // UP_ARROW
+        if (inputs.updown >0.1 || inputs.updown < -0.1) {track_intf.moveVertical(inputs.updown);}  // UP_ARROW
+        if (inputs.leftright >0.1 || inputs.leftright < -0.1) {track_intf.moveHorizontal(inputs.leftright);}  // UP_ARROW
         if (inputs.boxsize== -1) {input_command(7);} // s
         else if (inputs.boxsize == 1) {input_command(8);} // a
     }
@@ -163,9 +163,13 @@ int input_thread(SharedData& sharedData) {
         }
     }
     else if (settings.inputType==1) //socket 
-    {}
+    {
+        
+    }
     else if (settings.inputType==2) //serial
-    {}
+    {
+
+    }
     else if (settings.inputType==3) //fifo
     {
         int last_btn1 = 0;

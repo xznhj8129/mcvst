@@ -7,7 +7,7 @@ int search_thread(SharedData& sharedData) {
     bool finish_error = false;
     cv::Mat frame;
     cv::Mat processframe;
-    cv::Size process_size((double)cap_intf.frameSize.width * trackdata.image_scale, (double)cap_intf.frameSize.height * trackdata.image_scale);
+    cv::Size process_size((double)cap_intf.frameSize.width * track_intf.image_scale, (double)cap_intf.frameSize.height * track_intf.image_scale);
     int frame_count;
     if (!search_intf.setup || settings.searchType==0) {
         if (global_debug_print) {std::cout << "search thread finished" << std::endl;}

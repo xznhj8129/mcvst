@@ -9,18 +9,18 @@
 void onMouse(int event, int x, int y, int, void*) {
     if (event == cv::EVENT_LBUTTONDOWN) {
         cv::Point2f clicked_point;
-        double scale_x = (double)cap_intf.frameSize.width / settings.windowSize.width;
-        double scale_y = (double)cap_intf.frameSize.height / settings.windowSize.height;
+        double scale_x = (double)cap_intf.frameSize.width / settings.displaySize.width;
+        double scale_y = (double)cap_intf.frameSize.height / settings.displaySize.height;
         clicked_point.x = x * scale_x;
         clicked_point.y = y * scale_y;
-        trackdata.lock(clicked_point.x, clicked_point.y);
+        track_intf.lock(clicked_point.x, clicked_point.y);
         
         /*
         cv::Point2f clicked_point;
         if (center.x < 0 || center.y < 0) {
             // No zoom: map directly from display to original frame
-            double scale_x = (double)cap_intf.frameSize.width / settings.windowSize.width;
-            double scale_y = (double)cap_intf.frameSize.height / settings.windowSize.height;
+            double scale_x = (double)cap_intf.frameSize.width / settings.displaySize.width;
+            double scale_y = (double)cap_intf.frameSize.height / settings.displaySize.height;
             clicked_point.x = x * scale_x;
             clicked_point.y = y * scale_y;
         } else {
@@ -67,7 +67,7 @@ int display_thread(SharedData& sharedData) {
     }
     else if (settings.displayType == 1) {
         cv::namedWindow("Tracking", cv::WINDOW_NORMAL);
-        cv::resizeWindow("Tracking", settings.windowSize.width, settings.windowSize.height);
+        cv::resizeWindow("Tracking", settings.displaySize.width, settings.displaySize.height);
         cv::setMouseCallback("Tracking", onMouse);
         cv::imshow("Tracking",cap_intf.novideo);
     }
@@ -164,10 +164,10 @@ int display_thread(SharedData& sharedData) {
             std::cout << "empty frame " << fc << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
-            if (trackdata.locked) {
+            if (track_intf.locked) {
                 display_intf.draw_track(frame);
             } else if (settings.showPipper) {
-                display_intf.draw_cornerbox(frame, cv::Point(trackdata.poi.x, trackdata.poi.y), trackdata.boxsize);
+                display_intf.draw_cornerbox(frame, cv::Point(track_intf.poi.x, track_intf.poi.y), track_intf.boxsize);
             }
 
             if (settings.searchType>0) {
@@ -204,16 +204,16 @@ int display_thread(SharedData& sharedData) {
             }
 
             // display
-            if (frame.cols != settings.windowSize.width) {
-                cv::resize(frame, frame, settings.windowSize, 0, 0, cv::INTER_AREA);
+            if (frame.cols != settings.displaySize.width) {
+                cv::resize(frame, frame, settings.displaySize, 0, 0, cv::INTER_AREA);
             }
 
             if (settings.displayType == 1) { //opencv keyboard input
                 cv::imshow("Tracking", frame);
 
-                int c = cv::waitKey(1) & 0xFF;
+                int keyCode = cv::waitKey(1) & 0xFF;
                 if (keyCode == 27) {break;} // Exit if ESC pressed
-                if (keyCode != 255) {trackdata.changeROI(keyCode);} // get rid of this
+                if (keyCode != 255) {track_intf.changeROI(keyCode);} // get rid of this
 
             } else if (settings.displayType == 2) {
                 display_intf.writeImageToFramebuffer(frame);

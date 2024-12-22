@@ -8,8 +8,7 @@ SearchInterface::SearchInterface(){};
 void SearchInterface::Init() {
     std::vector<cv::Scalar> colors = {cv::Scalar(255, 255, 0), cv::Scalar(0, 255, 0), cv::Scalar(0, 255, 255), cv::Scalar(255, 0, 0)};
     std::vector<std::string> class_list;
-    cv::Size procSize((double)cap_intf.frameSize.width * trackdata.image_scale, (double)cap_intf.frameSize.height * trackdata.image_scale);
-    std::cout << settings.searchType << std::endl;
+    cv::Size procSize((double)cap_intf.frameSize.width * track_intf.image_scale, (double)cap_intf.frameSize.height * track_intf.image_scale);
     if (settings.searchType==1) {
         std::cout << "Loading net: "<<settings.search_dnn_model<<std::endl;
         auto result = cv::dnn::readNet(settings.search_dnn_model);

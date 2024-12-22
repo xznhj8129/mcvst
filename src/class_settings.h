@@ -12,7 +12,7 @@ class SettingsClass {
         std::string capturePath;
         std::string capFormat;
         cv::Size capSize;
-        cv::Size windowSize;
+        cv::Size displaySize;
         int inputType;
         std::string inputPath;
         double processScale;

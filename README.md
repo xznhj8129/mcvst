@@ -11,7 +11,7 @@ Use command arguments or cfg file: ./tracker --config=settings.cfg\
 ### Capture:
 * v4l2 
 * gstreamer
-* file
+* opencv (using opencv cap)
 * udp
 
 ### Display:
@@ -78,7 +78,7 @@ Arrows: Move track\
 --score_threshold
 
 ## Features TODO:
---zoombox= [topleft, topright, bottomleft, bottomright] (show zoomed target lock box)\
+* --zoombox= [topleft, topright, bottomleft, bottomright] (show zoomed target lock box)\
 - Search and autolock toggle inputs
 - remove hardcoded fifo paths
 - Tracking slew rate limiter
@@ -86,6 +86,7 @@ Arrows: Move track\
 - Inset corner zoom picture
 - Image stabilization
 - Box display from external input (ie: from externally computed direction from GPS coordinates)
+- Text display from external input 
 - Capture: libcamera, rtsp, raspivid
 - Display: rtsp, gstreamer, udp
 - Input: socket, serial

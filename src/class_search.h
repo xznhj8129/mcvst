@@ -25,6 +25,7 @@ class SearchInterface {
         bool is_cuda;
         bool setup;
         std::vector<SearchDetection> output;
+        float search_fps;
 
         SearchInterface();
         void Init();

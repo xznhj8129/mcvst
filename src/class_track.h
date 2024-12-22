@@ -3,7 +3,7 @@
 #include "structs.h"
 #include "class_settings.h"
 
-class TrackData {
+class TrackInterface {
     private:
         int init_boxsize = 50;
         int guide_mem = settings.capFPS;
@@ -23,10 +23,11 @@ class TrackData {
         bool lock_change = false;
         bool lost_lock = false;
         bool guiding = false;
+        float track_fps;
         GuidanceVector guidance;
         VecArray angmem;
         VecArray velmem;
-        TrackData();
+        TrackInterface();
         void Init(cv::Size cap_image_size, const double scale);
         cv::Point scaledPoi();
         cv::Rect scaledRoi();
@@ -47,4 +48,4 @@ class TrackData {
         void guide();
 
 };
-extern TrackData trackdata;
+extern TrackInterface track_intf;

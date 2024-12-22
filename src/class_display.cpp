@@ -65,8 +65,9 @@ void DisplayInterface::draw_cornerbox(cv::Mat& frame, cv::Point poi, int boxsize
 
 void DisplayInterface::draw_track(cv::Mat& frame) {
     //cv::Mat processed = frame.clone();
-    cv::Rect scaledroi = trackdata.scaledRoi();
-    cv::Point scaledpoi = trackdata.scaledPoi();
+    cv::Rect scaledroi = track_intf.scaledRoi();
+    cv::Point scaledpoi = track_intf.scaledPoi();
+    cv::Size displaySize = settings.displaySize;
 
     if (settings.trackMarker == 1) {
         cv::rectangle(frame, scaledroi, osdcolor, linesize);
@@ -79,35 +80,63 @@ void DisplayInterface::draw_track(cv::Mat& frame) {
 
     }
     if (settings.trackMarker == 5 || settings.trackMarker == 6) { //maverick or lancet
-        cv::line(frame, cv::Point(scaledpoi.x, 0),                          cv::Point(scaledpoi.x, scaledpoi.y - (trackdata.boxsize/2)), osdcolor, linesize); // top
-        cv::line(frame, cv::Point(scaledpoi.x, trackdata.framesize.height), cv::Point(scaledpoi.x, scaledpoi.y + (trackdata.boxsize/2)), osdcolor, linesize); // down
-        cv::line(frame, cv::Point(0, scaledpoi.y),                          cv::Point(scaledpoi.x - (trackdata.boxsize/2), scaledpoi.y), osdcolor, linesize); //left
-        cv::line(frame, cv::Point(trackdata.framesize.width, scaledpoi.y),  cv::Point(scaledpoi.x + (trackdata.boxsize/2), scaledpoi.y), osdcolor, linesize); // right
+        cv::line(frame, cv::Point(scaledpoi.x, 0),                          cv::Point(scaledpoi.x, scaledpoi.y - (track_intf.boxsize/2)), osdcolor, linesize); // top
+        cv::line(frame, cv::Point(scaledpoi.x, track_intf.framesize.height), cv::Point(scaledpoi.x, scaledpoi.y + (track_intf.boxsize/2)), osdcolor, linesize); // down
+        cv::line(frame, cv::Point(0, scaledpoi.y),                          cv::Point(scaledpoi.x - (track_intf.boxsize/2), scaledpoi.y), osdcolor, linesize); //left
+        cv::line(frame, cv::Point(track_intf.framesize.width, scaledpoi.y),  cv::Point(scaledpoi.x + (track_intf.boxsize/2), scaledpoi.y), osdcolor, linesize); // right
     }   
 
     if (settings.trackMarker == 6 || settings.trackMarker == 3) { //lancet or corners
-        draw_cornerbox(frame, scaledpoi, trackdata.boxsize);
+        draw_cornerbox(frame, scaledpoi, track_intf.boxsize);
     }
 
-    if (settings.trackMarker == 6 || settings.trackMarker == 2) { //lancet or crosshair
+    if (settings.trackMarker == 6 ) { //lancet
         //center cross
-        cv::line(frame, cv::Point(scaledpoi.x - (trackdata.boxsize/5) , scaledpoi.y), cv::Point(scaledpoi.x + (trackdata.boxsize / 5), scaledpoi.y), osdcolor, linesize);
-        cv::line(frame, cv::Point(scaledpoi.x, scaledpoi.y - (trackdata.boxsize/5)), cv::Point(scaledpoi.x, scaledpoi.y + (trackdata.boxsize/5)), osdcolor, linesize);
+        cv::line(frame, cv::Point(scaledpoi.x - (track_intf.boxsize/5) , scaledpoi.y), cv::Point(scaledpoi.x + (track_intf.boxsize / 5), scaledpoi.y), osdcolor, linesize);
+        cv::line(frame, cv::Point(scaledpoi.x, scaledpoi.y - (track_intf.boxsize/5)), cv::Point(scaledpoi.x, scaledpoi.y + (track_intf.boxsize/5)), osdcolor, linesize);
+    }
+
+    if (settings.trackMarker == 2) { //crosshair
+        int sizescale = 4;
+        int scalew = track_intf.framesize.width/sizescale;
+        int scaleh = track_intf.framesize.height/sizescale;
+
+        int x1 = scaledpoi.x;
+        int y1 = scaledpoi.y - (track_intf.boxsize/2) - (scalew / sizescale);
+        int x2 = scaledpoi.x;
+        int y2 = scaledpoi.y - (track_intf.boxsize/2);
+
+        int x3 = scaledpoi.x;
+        int y3 = scaledpoi.y + (track_intf.boxsize/2);
+        int x4 = scaledpoi.x;
+        int y4 = scaledpoi.y + (track_intf.boxsize/2) + (scalew / sizescale);
+
+        int x5 = scaledpoi.x - (track_intf.boxsize/2) - (scalew / sizescale);
+        int y5 = scaledpoi.y;
+        int x6 = scaledpoi.x - (track_intf.boxsize/2);
+        int y6 = scaledpoi.y;
+
+        int x7 = scaledpoi.x + (track_intf.boxsize/2);
+        int y7 = scaledpoi.y;
+        int x8 = scaledpoi.x + (track_intf.boxsize/2) + (scalew / sizescale);
+        int y8 = scaledpoi.y;
+
+        cv::line(frame, cv::Point(x1, y1), cv::Point(x2, y2), osdcolor, linesize); // top
+        cv::line(frame, cv::Point(x3, y3), cv::Point(x4, y4), osdcolor, linesize); // down
+        cv::line(frame, cv::Point(x5, y5), cv::Point(x6, y6), osdcolor, linesize); //left
+        cv::line(frame, cv::Point(x7, y7), cv::Point(x8, y8), osdcolor, linesize); // right
+    
     }
 
     //indicators
-    cv::putText(frame, "LOCK", cv::Point(10, trackdata.framesize.height - 25), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, linesize);
+    cv::putText(frame, "LOCK", cv::Point(10, track_intf.framesize.height - 25), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, linesize);
 }
 
-void DisplayInterface::draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, int dist) {
+void DisplayInterface::draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, std::string text) {
     //cv::Mat processed = frame.clone();
     cv::Rect boxroi = cv::Rect(poi.x - (boxsize / 2), poi.y - (boxsize / 2), boxsize, boxsize);
-    std::ostringstream range_label;
-    range_label << std::fixed << std::setprecision(2);
-    range_label << "DIST " << dist;
-    std::string fps_label_str = range_label.str();
     cv::rectangle(frame, boxroi, osdcolor, linesize);
-    cv::putText(frame, fps_label_str, cv::Point(boxroi.x, boxroi.y + boxsize), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, linesize);
+    cv::putText(frame, text, cv::Point(boxroi.x, boxroi.y + boxsize), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, linesize);
 }
 
 void DisplayInterface::draw_search_detections(cv::Mat& frame, SearchResults results) {
