@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
     track_intf.Init(cap_intf.frameSize, settings.processScale);
     display_intf.Init(settings.displayType);
     search_intf.Init();
+    input_intf.Init();
 
     std::thread captureThread(capture_thread, std::ref(sharedData));
     std::thread displayThread(display_thread, std::ref(sharedData));

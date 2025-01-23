@@ -18,8 +18,6 @@ class SettingsClass {
         double processScale;
         int displayType;
         std::string displayPath;
-        int trackerType;
-        int trackMarker;
         int searchType;
         int outputType;
         std::string outputPath;
@@ -28,6 +26,12 @@ class SettingsClass {
         bool use_eis;
         bool record_output;
         std::string recordPath;
+
+        int trackerType;
+        int trackMarker;
+        int init_boxsize;
+        int oftpoints;
+        bool oftfeatures;
 
         int trackingFPS;
         int displayFPS;

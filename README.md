@@ -95,6 +95,7 @@ Arrows: Move track\
 - Tracker params: https://docs.opencv.org/4.9.0/db/dd1/structcv_1_1TrackerKCF_1_1Params.html
 - Search: differentiate yolov5, yolov8; CUDA; more algorithms
 - finish config file setup
+- hold points if track lost and try again
 
 ## Bugs TODO:
 - Window/Display size set

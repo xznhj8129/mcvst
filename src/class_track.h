@@ -4,8 +4,6 @@
 #include "class_settings.h"
 
 class TrackInterface {
-    private:
-        int init_boxsize = 50;
         int guide_mem = settings.capFPS;
 
     public:
@@ -16,7 +14,7 @@ class TrackInterface {
         cv::Rect roi;
         cv::Rect lastroi;
         cv::Point poi;
-        int boxsize = init_boxsize;
+        int boxsize;
         bool target_lock = false;
         bool locked = false;
         bool first_lock = true;
@@ -24,7 +22,7 @@ class TrackInterface {
         bool lost_lock = false;
         bool guiding = false;
         float track_fps;
-        GuidanceVector guidance;
+        Vec2D angle;
         VecArray angmem;
         VecArray velmem;
         TrackInterface();
@@ -43,9 +41,23 @@ class TrackInterface {
         void update(cv::Point newtgt);
         void lock(const int x, const int y);
         void breaklock();
+        void defineRoi(cv::Point2f poi);
         void changeROI(int keyCode);
         bool isPointInROI(const cv::Point2f& point, float tolerance);
-        void guide();
+        std::vector<cv::Point2f> roiPoints();
+        void decomposeAffine(const cv::Mat& affine, 
+                            double& rotationDeg, 
+                            double& scale, 
+                            cv::Point2f& translation);
+        void denseFlowGlobalMotion(
+            const cv::Mat& prevGray,
+            const cv::Mat& curGray,
+            const FarnebackParams& fbParams,
+            cv::Point2f& trackedPoint,  // in/out: point we want to track via global motion
+            double& outRotationDeg,
+            double& outScale,
+            cv::Point2f& outTranslation
+        );
 
 };
 extern TrackInterface track_intf;

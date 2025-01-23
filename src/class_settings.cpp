@@ -75,6 +75,9 @@ void SettingsClass::Init(int argc, char** argv) {
                 displaySize.height = config.lookup(line)[1];
                 line = "scale"; processScale = config.lookup(line);
                 line = "tracker"; tracktype = config.lookup(line).c_str();
+                line = "default_trackbox_size"; init_boxsize = config.lookup(line);
+                line = "oft_points"; oftpoints = config.lookup(line);
+                line = "oft_trackfeatures"; oftfeatures = config.lookup(line);
                 line = "markertype"; markertype = config.lookup(line).c_str();
                 line = "pipper"; showPipper = config.lookup(line);
                 line = "record"; record_output = config.lookup(line);
@@ -207,8 +210,10 @@ void SettingsClass::Init(int argc, char** argv) {
 
     if (capturePath == "") {capturePath = "/dev/video0";}
     if (processScale==0) {processScale = 1;}
+    if (init_boxsize==0) {init_boxsize = 50;}
     //if (capSize.width==0) {capSize.width = 640;}
     //if (capSize.height==0) {capSize.height = 480;}
+    if (oftpoints==0 || (trackerType!=1)) {oftpoints=1;}
     if (capBrightness==0) {capBrightness = 50;}
     if (osdLinesize==0) {osdLinesize = 1;}
     if (osdColor=="") {osdColor = "white";}

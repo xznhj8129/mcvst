@@ -45,75 +45,6 @@ TrackInputs read_from_fifo() {
 }
 
 
-void input_command(int input) {
-    /*
-    Inputs:
-        Lock 1
-        Unlock 2
-        float UpDown 3
-        float LeftRight 4
-        BoxSize 5
-        Exit 6
-    
-    */
-    switch (input) {
-        case 1: 
-            if (!track_intf.target_lock) {
-                track_intf.lock(track_intf.poi.x, track_intf.poi.y);
-            }
-            else {
-                track_intf.target_lock = false;
-                track_intf.locked = false;
-            }
-            break;
-
-        case 2: 
-            track_intf.breaklock();
-            break;
-
-        case 3: 
-            track_intf.moveUp();
-            break;
-
-        case 4: 
-            track_intf.moveDown();
-            break;
-
-        case 5: 
-            track_intf.moveLeft();
-            break;
-
-        case 6: 
-            track_intf.moveRight();
-            break;
-
-        case 7: 
-            track_intf.biggerBox();
-            break;
-
-        case 8: 
-            track_intf.smallerBox();
-            break;
-
-        case 9:
-            global_running.store(false);
-            break;
-    }
-}
-
-void input_vec(TrackInputs inputs, int last_btn1) {
-    if (inputs.valid) {
-
-        if (inputs.lock && last_btn1 == 0) {input_command(1);}
-        else if (inputs.unlock) {input_command(2);}
-        if (inputs.updown >0.1 || inputs.updown < -0.1) {track_intf.moveVertical(inputs.updown);}  // UP_ARROW
-        if (inputs.leftright >0.1 || inputs.leftright < -0.1) {track_intf.moveHorizontal(inputs.leftright);}  // UP_ARROW
-        if (inputs.boxsize== -1) {input_command(7);} // s
-        else if (inputs.boxsize == 1) {input_command(8);} // a
-    }
-}
-
-
 int input_thread(SharedData& sharedData) {
     bool finish_error = false;
 
@@ -129,31 +60,31 @@ int input_thread(SharedData& sharedData) {
                 c = getchar();
                 int keyCode = 0; 
                 if (c == ' ') {
-                    input_command(1);} 
+                    input_intf.input_command(1);} 
                 else if (c == 27) { // ESC sequence for arrow keys
                     getchar(); // Skip the '['
                     c = getchar();
                     switch(c) {
                         case 'A': 
-                            input_command(3);
+                            input_intf.input_command(3);
                             break; // Up arrow
                         case 'B': 
-                            input_command(4);
+                            input_intf.input_command(4);
                             break; // Down arrow
                         case 'C': 
-                            input_command(6);
+                            input_intf.input_command(6);
                             break; // Right arrow
                         case 'D': 
-                            input_command(5);
+                            input_intf.input_command(5);
                             break; // Left arrow
                         default: 
                             keyCode = 27; 
                             global_running.store(false);
                             break; // ESC pressed
                     }
-                } else if (c == 'c') {input_command(2);}
-                else if (c=='a') {input_command(7);}
-                else if (c=='s') {input_command(8);}
+                } else if (c == 'c') {input_intf.input_command(2);}
+                else if (c=='a') {input_intf.input_command(7);}
+                else if (c=='s') {input_intf.input_command(8);}
 
                 if (keyCode != 0) { // Reset after processing
                     latestKeyCode.store(0); }
@@ -177,7 +108,7 @@ int input_thread(SharedData& sharedData) {
             try {
                 TrackInputs inputs = read_from_fifo(); // use settings.inputPath
                 if (inputs.valid) {
-                    input_vec(inputs, last_btn1);
+                    input_intf.input_vec(inputs, last_btn1);
                     last_btn1 = inputs.lock;
                 }
             } catch (const std::exception& e) {

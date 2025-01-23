@@ -6,12 +6,11 @@ tracker
 obj/
 build/
 bin/
-test.mp4
 backup/
 backup.sh
 syncbin.sh
 analysis.txt
 gmon.out
 models/
-dji.mp4
+testvideos/
 obs.cfg

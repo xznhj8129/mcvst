@@ -21,8 +21,8 @@ void handleClientRequests(int clientSocket) {
             return;
         }
         buffer[bytesRead] = '\0';
-        double data_az = track_intf.guidance.angle.x; // might need to do atomic for thread safety
-        double data_el = track_intf.guidance.angle.y; //atom_elevation.load();
+        double data_az = track_intf.angle.x; // might need to do atomic for thread safety
+        double data_el = track_intf.angle.y; //atom_elevation.load();
         int data_mode = track_intf.target_lock;
         std::string data = std::to_string(data_mode) + "," + std::to_string(data_az) + ","+std::to_string(data_el);
         send(clientSocket, data.c_str(), data.size(), 0);
@@ -85,8 +85,8 @@ int output_thread(SharedData& sharedData) {
                 std::cerr << "Error: Could not open FIFO file." << std::endl;
             }
             else {
-                double data_az = track_intf.guidance.angle.x; // might need to do atomic for thread safety
-                double data_el = track_intf.guidance.angle.y; //atom_elevation.load();
+                double data_az = track_intf.angle.x; // might need to do atomic for thread safety
+                double data_el = track_intf.angle.y; //atom_elevation.load();
                 int data_mode = track_intf.locked;
                 std::string data = std::to_string(data_mode) + "," + std::to_string(data_az) + ","+std::to_string(data_el);
                 fifo << data << std::endl;

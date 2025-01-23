@@ -164,6 +164,9 @@ int display_thread(SharedData& sharedData) {
             std::cout << "empty frame " << fc << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
+
+            for (const auto& point : track_intf.oftdata.old_points) {
+                cv::circle(frame, point, 2, cv::Scalar(255, 255, 255), -1);}
             if (track_intf.locked) {
                 display_intf.draw_track(frame);
             } else if (settings.showPipper) {
@@ -210,10 +213,44 @@ int display_thread(SharedData& sharedData) {
 
             if (settings.displayType == 1) { //opencv keyboard input
                 cv::imshow("Tracking", frame);
-
                 int keyCode = cv::waitKey(1) & 0xFF;
+                if (keyCode!=255){
+                    //std::cout << "KEY:" << keyCode << std::endl;
+                    switch(keyCode) {
+
+                        case 32:
+                            input_intf.input_command(1);
+                            break; // spc
+                        case 99:
+                            input_intf.input_command(2);
+                            break; // c
+                        case 82: 
+                            input_intf.input_command(3);
+                            break; // Up arrow
+                        case 84: 
+                            input_intf.input_command(4);
+                            break; // Down arrow
+                        case 83: 
+                            input_intf.input_command(6);
+                            break; // Right arrow
+                        case 81: 
+                            input_intf.input_command(5);
+                            break; // Left arrow
+                        case 97:
+                            input_intf.input_command(7);
+                            break; // a
+                        case 115:
+                            input_intf.input_command(8);
+                            break; // s
+                        case 27:
+                            input_intf.input_command(9);
+                            break; // c
+                        default: 
+                            break;
+
+                    }
+                }
                 if (keyCode == 27) {break;} // Exit if ESC pressed
-                if (keyCode != 255) {track_intf.changeROI(keyCode);} // get rid of this
 
             } else if (settings.displayType == 2) {
                 display_intf.writeImageToFramebuffer(frame);
