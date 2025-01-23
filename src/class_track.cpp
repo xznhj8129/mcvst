@@ -132,10 +132,7 @@ void TrackInterface::lock(const int x, const int y) {
             roi.height);
     } else {
         roi = cv::Rect(
-            (x * image_scale) - (boxsize / 2), 2_t result_param2, uint8_t target_system, uint8_t target_component)
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, 2_t result_param2, uint8_t target_system, uint8_t target_component)
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, 2_t result_param2, uint8_t target_system, uint8_t target_component)
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, 
+            (x * image_scale) - (boxsize / 2),
             (y * image_scale) - (boxsize / 2), 
             boxsize, 
             boxsize); 
