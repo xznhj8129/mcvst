@@ -14,3 +14,6 @@ gmon.out
 models/
 testvideos/
 obs.cfg
+.change
+checkchange.sh
+synczero2.sh

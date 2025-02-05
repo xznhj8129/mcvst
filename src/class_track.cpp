@@ -110,6 +110,17 @@ void TrackInterface::defineRoi(cv::Point2f newpoi) {
     roi = newroi;
 }
 
+bool TrackInterface::isPointInROI(const cv::Point2f& point, float tolerance) {
+    //std::cout << point.x << " in " << track_intf.roi.x - (boxsize * tolerance);
+    //std::cout << " to " << (track_intf.roi.x + (boxsize * tolerance)) << std::endl;
+    //std::cout << point.y << " in " << (track_intf.roi.y - (boxsize * tolerance));
+    //std::cout << " to " << (track_intf.roi.y + (boxsize * tolerance)) << std::endl;
+    return (point.x >= (track_intf.poi.x - (boxsize * tolerance)) && 
+            point.x < (track_intf.poi.x + (boxsize * tolerance)) &&
+            point.y >= (track_intf.poi.y - (boxsize * tolerance)) &&
+            point.y < (track_intf.poi.y + (boxsize * tolerance)));
+}
+
 void TrackInterface::update(cv::Point newtgt) {
     poi = newtgt;
     if (!settings.oftfeatures) {
@@ -122,7 +133,7 @@ void TrackInterface::update(cv::Point newtgt) {
 }
 
 void TrackInterface::lock(const int x, const int y) {
-    std::cout << "lock" << std::endl;
+
     poi = cv::Point(x, y) * image_scale;
     if ((roi.width > 0) && (roi.height > 0)) {
         roi = cv::Rect(
@@ -137,6 +148,14 @@ void TrackInterface::lock(const int x, const int y) {
             boxsize, 
             boxsize); 
     }
+
+
+    /*std::cout << 
+    "lock " << 
+    "poi " << poi << 
+    " image scale: " << image_scale << 
+    std::endl;*/
+
     lastroi = roi;
     target_lock = true;
     locked = false;
@@ -194,16 +213,6 @@ void TrackInterface::changeROI(int keyCode) { //used in window, mmal...
     }
 }
 
-bool TrackInterface::isPointInROI(const cv::Point2f& point, float tolerance) {
-    //std::cout << point.x << " in " << track_intf.roi.x - (boxsize * tolerance);
-    //std::cout << " to " << (track_intf.roi.x + (boxsize * tolerance)) << std::endl;
-    //std::cout << point.y << " in " << (track_intf.roi.y - (boxsize * tolerance));
-    //std::cout << " to " << (track_intf.roi.y + (boxsize * tolerance)) << std::endl;
-    return (point.x >= (track_intf.roi.x - (boxsize * tolerance)) && 
-            point.x < (track_intf.roi.x + (boxsize * tolerance)) &&
-            point.y >= (track_intf.roi.y - (boxsize * tolerance)) &&
-            point.y < (track_intf.roi.y + (boxsize * tolerance)));
-}
 
 // Helper to decompose the 2×3 affine matrix into rotation (degrees), scale, and translation
 void TrackInterface::decomposeAffine(const cv::Mat& affine, 

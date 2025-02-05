@@ -13,6 +13,7 @@ class TrackInterface {
         double image_scale;
         cv::Rect roi;
         cv::Rect lastroi;
+        cv::Point lastpoi;
         cv::Point poi;
         int boxsize;
         bool target_lock = false;

@@ -7,6 +7,8 @@
 #include <sstream>
 
 void onMouse(int event, int x, int y, int, void*) {
+    //frameSize.width
+    // if video does not fill vertically, click is offset
     if (event == cv::EVENT_LBUTTONDOWN) {
         cv::Point2f clicked_point;
         double scale_x = (double)cap_intf.frameSize.width / settings.displaySize.width;
@@ -14,6 +16,7 @@ void onMouse(int event, int x, int y, int, void*) {
         clicked_point.x = x * scale_x;
         clicked_point.y = y * scale_y;
         track_intf.lock(clicked_point.x, clicked_point.y);
+    }
         
         /*
         cv::Point2f clicked_point;
@@ -36,7 +39,7 @@ void onMouse(int event, int x, int y, int, void*) {
             clicked_point.x = x_in_crop + crop_rect.x;
             clicked_point.y = y_in_crop + crop_rect.y;
         }
-
+    
         // Initialize tracking
         center = clicked_point;
         tracking_points[0].clear();
@@ -44,8 +47,8 @@ void onMouse(int event, int x, int y, int, void*) {
         tracking_points[0].push_back(center);
         tracking = true;
         prev_gray.release();  // Reset previous frame
-        */
     }
+    */
 }
 
 int display_thread(SharedData& sharedData) {
@@ -165,8 +168,12 @@ int display_thread(SharedData& sharedData) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
 
-            for (const auto& point : track_intf.oftdata.old_points) {
+            /*for (const auto& point : track_intf.oftdata.old_points) {
                 cv::circle(frame, point, 2, cv::Scalar(255, 255, 255), -1);}
+            for (const auto& point : track_intf.bad_points) {
+                cv::circle(frame, point, 2, cv::Scalar(255, 0, 0), -1);}
+            cv::rectangle(frame, track_intf.roi, cv::Scalar(255, 255, 255), display_intf.linesize);*/
+
             if (track_intf.locked) {
                 display_intf.draw_track(frame);
             } else if (settings.showPipper) {
@@ -184,10 +191,11 @@ int display_thread(SharedData& sharedData) {
                     std::ostringstream oss;
                     oss << std::fixed << std::setprecision(2) << detection.confidence;
                     std::string trimmed_confidence = oss.str();
+
+                    std::string label = classStr + " " + trimmed_confidence;
+                    cv::rectangle(frame, box, cv::Scalar(255, 255, 255), display_intf.linesize);
+                    cv::putText(frame, label, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
                     //std::cout << classStr << " " << classId << " " << detection.confidence << " " << box.x+(box.width/2) << " "<< box.y+(box.height/2) << std::endl;
-                    cv::rectangle(frame, box, cv::Scalar(255, 255, 255), 2);
-                    cv::putText(frame, trimmed_confidence, cv::Point(box.x, box.y - 15), cv::FONT_HERSHEY_SIMPLEX, display_intf.linesize, cv::Scalar(255, 255, 255));
-                    cv::putText(frame, classStr, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, display_intf.linesize, cv::Scalar(255, 255, 255));
                 }                
             }
 

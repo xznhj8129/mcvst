@@ -43,7 +43,7 @@ int search_thread(SharedData& sharedData) {
                 {
                     SearchDetection detection = output[i];
                     int classId = detection.class_id;
-                    //std::cout << search_intf.class_list[classId] << " " << classId << " " << detection.confidence << " "<< detection.box.x+(detection.box.width/2) << " "<< detection.box.y+(detection.box.height/2) << std::endl;
+                    std::cout << search_intf.class_list[classId] << " " << classId << " " << detection.confidence << " "<< detection.box.x+(detection.box.width/2) << " "<< detection.box.y+(detection.box.height/2) << std::endl;
                 }
                 search_intf.output = output;
                 frame_count++;

@@ -54,6 +54,7 @@ int tracking_thread(SharedData& sharedData) {
 
     } 
     else if (settings.trackerType == 2) {}
+    else if (settings.trackerType == 3) {}
 
     else if (settings.trackerType == 6) {
         // Initialize Farneback parameters
@@ -94,6 +95,8 @@ int tracking_thread(SharedData& sharedData) {
         processframe = cv::Mat();
         if (track_intf.image_scale!=1.0) {cv::resize(frame, processframe, process_size);}
         else {processframe = frame.clone();}
+
+        // Tracking algorithms below
         
         if (settings.trackerType == 0 || cap_intf.no_feed) { // 
            passthrough = true;
@@ -114,7 +117,7 @@ int tracking_thread(SharedData& sharedData) {
             ); // <configurable> oft variables
             */
             
-            if (settings.oftfeatures) {
+            if (settings.oftfeatures) { // Multiple OFT features to track (drifts)
 
                 if (track_intf.target_lock) {      
                     
@@ -191,8 +194,8 @@ int tracking_thread(SharedData& sharedData) {
                     frame_gray_init = frame_gray.clone(); 
                 }
             }
-            else {  // normal 
 
+            else {  // single-pixel OFT tracking
 
                 if (track_intf.target_lock) {      
                     std::vector<cv::Point2f> new_points;
@@ -201,128 +204,169 @@ int tracking_thread(SharedData& sharedData) {
                     float tolerance = 1.5;
                     
                     cv::calcOpticalFlowPyrLK(frame_gray_init, frame_gray, track_intf.oftdata.old_points, new_points, status, errors, cv::Size(15, 15), 2, termcrit); //<configurable> oft variables
-                    std::cout << track_intf.target_lock << " " << track_intf.locked << " points:" << new_points.size() << "poi" << track_intf.poi << " roi " << track_intf.roi << std::endl;
-                    if (track_intf.isPointInROI(new_points[0], tolerance)) {
-                        //std::cout << "good lock " << updc << std::endl;
-                        frame_gray_init = frame_gray.clone();
-                        track_intf.oftdata.old_points = new_points;
-                        track_intf.poi = new_points[0];
 
-                        track_intf.lastroi = track_intf.roi;
-                        track_intf.roi.x = track_intf.poi.x - (track_intf.boxsize / 2);
-                        track_intf.roi.y = track_intf.poi.y - (track_intf.boxsize / 2);
-                        track_intf.roi.width = track_intf.boxsize;
-                        track_intf.roi.height = track_intf.boxsize;
-                        if (track_intf.target_lock) {track_intf.locked = true;}
-                    }
-                    else {
+                    std::cout << 
+                    track_intf.target_lock << " " << 
+                    track_intf.locked << 
+                    " points:" << new_points.size() << 
+                    " poi: " << new_points[0] << 
+                    " roi: " << track_intf.roi << 
+                    " old_points " << track_intf.oftdata.old_points <<
+                    std::endl;
+
+                    if (!track_intf.isPointInROI(new_points[0], tolerance)) {
                         std::cout << "bad lock" << std::endl;
-                        track_intf.target_lock = false;
-                        track_intf.locked = false;
+                        //track_intf.target_lock = false;
+                        //track_intf.locked = false;
+                        new_points.clear();
+                        new_points.push_back(track_intf.poi);
                     }
+                    track_intf.oftdata.old_points = new_points;
+                    track_intf.poi = new_points[0];
+
+                    track_intf.lastroi = track_intf.roi;
+                    track_intf.roi.x = track_intf.poi.x - (track_intf.boxsize / 2);
+                    track_intf.roi.y = track_intf.poi.y - (track_intf.boxsize / 2);
+                    track_intf.roi.width = track_intf.boxsize;
+                    track_intf.roi.height = track_intf.boxsize;
+                    if (track_intf.target_lock) {track_intf.locked = true;}
+                    frame_gray_init = frame_gray.clone();
                 }
             }
                 
         }
-        else if (settings.trackerType == 2 || settings.trackerType == 3) { // CRST/KCF unfinished, implementation sucks
-            //std::cout << "target_lock " << track_intf.target_lock << std::endl;
-            //std::cout << "locked " << track_intf.locked << std::endl;
-            //std::cout << "first_lock " << track_intf.first_lock << std::endl;
-            
+        else if (settings.trackerType == 2 || settings.trackerType == 3) { // KCF/CSRT branch
+            // Reinitialize tracker if a re-lock is requested or if we’re not already tracking.
             if ((track_intf.target_lock & (!track_intf.locked || track_intf.first_lock) || 
                 (track_intf.locked && track_intf.lock_change))) {
-                //std::cout << "kcf1" << std::endl;
-
-                //integrate parameter customization: https://docs.opencv.org/4.9.0/db/dd1/structcv_1_1TrackerKCF_1_1Params.html
                 if (settings.trackerType == 2) {
-                    cv::TrackerKCF::Params x;
                     tracker = cv::TrackerKCF::create();
-                    }
-                else if (settings.trackerType == 3) {
+                } else if (settings.trackerType == 3) {
                     tracker = cv::TrackerCSRT::create();
-                    }
-
-                tracker->init(processframe, track_intf.roi);
-                //ok = tracker->update(processframe, track_intf.roi); //True means that target was located and false means that tracker cannot locate target in current frame. Note, that latter does not imply that tracker has failed, maybe target is indeed missing from the frame (say, out of sight)
-                //if (ok) {
-                    track_intf.locked = true;
-                    track_intf.target_lock = false;
-                    track_intf.first_lock = false;
-                    track_intf.lock_change = false;
-                //}
+                }
+                // Create a named ROI variable from our existing roi (an lvalue)
+                cv::Rect initBox = track_intf.roi;
+                tracker->init(processframe, initBox);
+                track_intf.locked = true;
+                track_intf.target_lock = false;
+                track_intf.first_lock = false;
+                track_intf.lock_change = false;
             }
 
             if (track_intf.locked && track_intf.roi.width!=0 && track_intf.roi.height!=0) {
-                std::cout << "kcf2" << " " << track_intf.poi << track_intf.roi << std::endl;
+                // Save the last ROI before updating.
                 track_intf.lastroi = track_intf.roi;
-                track_intf.poi.x = track_intf.roi.x + (track_intf.boxsize/2);
-                track_intf.poi.y = track_intf.roi.y + (track_intf.boxsize/2);
-                ok = tracker->update(processframe, track_intf.roi);
 
-                if (!ok) {
+                // Declare a named variable for the ROI update.
+                cv::Rect trackingBox = track_intf.roi;
+                ok = tracker->update(processframe, trackingBox);
+                if (ok) {
+                    // Update the internal ROI from the updated trackingBox.
+                    track_intf.roi = trackingBox;
+                    // Update the tracked point (poi) as the center of the ROI.
+                    track_intf.poi.x = track_intf.roi.x + (track_intf.roi.width / 2);
+                    track_intf.poi.y = track_intf.roi.y + (track_intf.roi.height / 2);
+                } else {
                     std::cout << "Lost track" << std::endl;
                     track_intf.lost_lock = true;
                     track_intf.locked = false;
-                    track_intf.target_lock = true; //re-lock
-                    }
+                    track_intf.target_lock = true; // Request re-lock next frame.
+                }
             }
         }
 
-        else if (settings.trackerType == 6) { // dense flow (dnu)
-                if (track_intf.target_lock) {      
-                    //std::cout << "lock loop " << updc << std::endl;  
-                    cv::Mat curGray;
-                    cv::cvtColor(processframe, curGray, cv::COLOR_BGR2GRAY);
-                    if (prevGray.empty()) {
-                        prevGray = curGray.clone();
-                    }
-                    
-                    updc += 1;
-                    // this isn't actually used?
-                    /*if (updc > update_frames) {
-                        cv::goodFeaturesToTrack(frame_gray, corners, 100, 0.3, 7); // <configurable> oft variables
-                        updc = 0;
-                    }*/
-                    // Suppose you have two consecutive grayscale frames
-                    //cv::Mat prevGray = cv::imread("frame0.png", cv::IMREAD_GRAYSCALE);
-                    if (prevGray.empty() || curGray.empty()) {
-                        std::cerr << "Could not load test images.\n";
-                    }
+        else if (settings.trackerType == 6) { // dense optical flow using ROI
+            cv::Mat curGray;
+            cv::cvtColor(processframe, curGray, cv::COLOR_BGR2GRAY);
+            if (prevGray.empty()) {
+                prevGray = curGray.clone();
+            }
 
-                    // A tracked point we want to follow. 
-                    // In a real app, you might set this from a mouse click or ROI center:
-                    cv::Point2f trackedPoint;
-                    trackedPoint.x = track_intf.poi.x;
-                    trackedPoint.y = track_intf.poi.y;
+            // Ensure the ROI is within image bounds.
+            cv::Rect roiRect = track_intf.roi & cv::Rect(0, 0, curGray.cols, curGray.rows);
+            if (roiRect.width <= 0 || roiRect.height <= 0) {
+                std::cerr << "Invalid ROI\n";
+                prevGray = curGray.clone();
+                break; // or continue, depending on your logic
+            }
 
-                    // Outputs: global rotation, scale, translation
-                    double rotationDeg  = 0.0;
-                    double scale        = 1.0;
-                    cv::Point2f transl(0.f, 0.f);
+            // Create a mask that highlights the ROI.
+            cv::Mat mask = cv::Mat::zeros(curGray.size(), CV_8UC1);
+            mask(roiRect) = 255;
 
-                    // Run the dense-flow-based global motion estimation
-                    track_intf.denseFlowGlobalMotion(
-                        prevGray,
-                        curGray,
-                        fbParams,
-                        trackedPoint,  // in/out
-                        rotationDeg,
-                        scale,
-                        transl
-                    );
+            // Compute dense optical flow over the full image.
+            cv::Mat flow;
+            cv::calcOpticalFlowFarneback(
+                prevGray,
+                curGray,
+                flow,
+                fbParams.pyrScale,
+                fbParams.levels,
+                fbParams.winSize,
+                fbParams.iterations,
+                fbParams.polyN,
+                fbParams.polySigma,
+                fbParams.flags
+            );
 
-                    // Now 'trackedPoint' is updated. Also you have 'rotationDeg', 'scale', 'transl'
+            // Collect point matches only from inside the ROI.
+            std::vector<cv::Point2f> srcPts;
+            std::vector<cv::Point2f> dstPts;
+            const int step = 8; // sampling stride
+            for (int y = roiRect.y; y < roiRect.y + roiRect.height; y += step) {
+                for (int x = roiRect.x; x < roiRect.x + roiRect.width; x += step) {
+                    cv::Vec2f vec = flow.at<cv::Vec2f>(y, x);
+                    float flowX = vec[0];
+                    float flowY = vec[1];
+                    cv::Point2f srcPt(static_cast<float>(x), static_cast<float>(y));
+                    cv::Point2f dstPt = srcPt + cv::Point2f(flowX, flowY);
+                    srcPts.push_back(srcPt);
+                    dstPts.push_back(dstPt);
+                }
+            }
+
+            if (srcPts.size() < 10) {
+                std::cerr << "Not enough flow points in ROI to estimate motion!\n";
+                // You might choose to mark a failure to lock or simply update prevGray and try again.
+                prevGray = curGray.clone();
+            }
+            else {
+                // Estimate an affine transform from the matched points.
+                cv::Mat affine = cv::estimateAffinePartial2D(srcPts, dstPts);
+                if (affine.empty()) {
+                    std::cerr << "Failed to estimate global affine transform.\n";
+                }
+                else {
+                    // Decompose the affine to get rotation, scale, and translation.
+                    double rotationDeg = 0.0, scale = 1.0;
+                    cv::Point2f translation(0.f, 0.f);
+                    track_intf.decomposeAffine(affine, rotationDeg, scale, translation);
+
+                    // Update the tracked point using the affine transform.
+                    cv::Point2f trackedPoint = track_intf.poi;
+                    double a11 = affine.at<double>(0,0);
+                    double a12 = affine.at<double>(0,1);
+                    double a13 = affine.at<double>(0,2);
+                    double a21 = affine.at<double>(1,0);
+                    double a22 = affine.at<double>(1,1);
+                    double a23 = affine.at<double>(1,2);
+                    double newX = a11 * trackedPoint.x + a12 * trackedPoint.y + a13;
+                    double newY = a21 * trackedPoint.x + a22 * trackedPoint.y + a23;
+                    trackedPoint = cv::Point2f(static_cast<float>(newX), static_cast<float>(newY));
+
                     std::cout << "Global Rotation (deg): " << rotationDeg << "\n";
                     std::cout << "Global Scale:          " << scale       << "\n";
-                    std::cout << "Global Translation:    (" << transl.x << ", " << transl.y << ")\n";
+                    std::cout << "Global Translation:    (" << translation.x << ", " << translation.y << ")\n";
                     std::cout << "Updated Tracked Point: (" << trackedPoint.x << ", " << trackedPoint.y << ")\n";
-                    track_intf.poi.x = trackedPoint.x;
-                    track_intf.poi.y = trackedPoint.y;
-                    cv::imshow("test1",curGray);
-                    cv::imshow("test2",prevGray);
-                    prevGray = curGray.clone();
+
+                    track_intf.poi = trackedPoint;
                 }
+            }
+            cv::imshow("denseFlow: curGray", curGray);
+            cv::imshow("denseFlow: ROI mask", mask);
+            prevGray = curGray.clone();
         }
+
 
         if (track_intf.locked) {
             //std::cout << track_intf.poi << " " << cap_intf.frameSize << std::endl;

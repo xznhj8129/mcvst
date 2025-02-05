@@ -35,6 +35,7 @@ Use command arguments or cfg file: ./tracker --config=settings.cfg\
 * Lucas-Kanade Sparse Optical Flow
 * Kernelized Correlation Filter
 * CSRT
+* MOSSE
 
 ### Search types:
 * YOLOv5
