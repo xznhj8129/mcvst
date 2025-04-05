@@ -21,7 +21,7 @@ void CaptureInterface::Init(int captureType, std::string capturePath, cv::Size c
         cv::VideoCapture cap(capturePath, cv::CAP_V4L2);
             
         if (!cap.isOpened()) {
-            std::cerr << "Error: Couldn't open capture." << std::endl;
+            std::cerr << "V4L2 Error: Couldn't open capture." << std::endl;
             global_running.store(false);
         } else {
             //https://docs.opencv.org/4.9.0/d4/d15/group__videoio__flags__base.html
@@ -32,8 +32,11 @@ void CaptureInterface::Init(int captureType, std::string capturePath, cv::Size c
             cap.set(cv::CAP_PROP_BRIGHTNESS, settings.capBrightness); //night: 90
             cap.set(cv::CAP_PROP_CONTRAST, settings.capContrast); //night: 80
             cap.set(cv::CAP_PROP_SATURATION, settings.capSat); //night: 20
-            cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('B', 'G', 'R', '3'));
-            //cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc(settings.capFormat[0],settings.capFormat[1],settings.capFormat[2],settings.capFormat[3]));
+            //cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('B', 'G', 'R', '3'));
+            cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc(settings.capFormat[0],settings.capFormat[1],settings.capFormat[2],settings.capFormat[3]));
+            std::cout << "Cap size: " << capSize.width << "x" << capSize.height << std::endl;
+            std::cout<< "Cap FPS: " << settings.capFPS << std::endl;
+            std::cout << "Cap format: " << settings.capFormat[0] << settings.capFormat[1] << settings.capFormat[2] << settings.capFormat[3] << std::endl;
             video = cap;
             valid = true;
         }
@@ -41,17 +44,17 @@ void CaptureInterface::Init(int captureType, std::string capturePath, cv::Size c
     else if (captype == 2) { //gstreamer
         cv::VideoCapture cap(capturePath, cv::CAP_GSTREAMER);
         if (!cap.isOpened()) {
-            std::cerr << "Error: Couldn't open capture." << std::endl;
+            std::cerr << "Gstreamer cap Error: Couldn't open capture." << std::endl;
             global_running.store(false);
         } else {
             video = cap;
             valid = true;
         }
     }
-    else if (captype == 3) { //file
+    else if (captype == 3 || captype == 4 ) { //file or rtsp (opencv)
         cv::VideoCapture cap(capturePath);
         if (!cap.isOpened()) {
-            std::cerr << "Error: Couldn't open capture." << std::endl;
+            std::cerr << "OpenCV Cap Error: Couldn't open capture." << std::endl;
             global_running.store(false);
         } else {
             video = cap;

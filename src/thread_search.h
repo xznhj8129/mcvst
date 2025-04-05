@@ -16,7 +16,7 @@ int search_thread(SharedData& sharedData) {
 
     // insert thread sleeper here
     if (settings.searchType==1) {
-        std::cout << "Yolo" << std::endl;
+        std::cout << "Search thread started" << std::endl;
     }
     else {
         std::cerr << "Invalid search type selected" << std::endl;
@@ -43,15 +43,18 @@ int search_thread(SharedData& sharedData) {
                 {
                     SearchDetection detection = output[i];
                     int classId = detection.class_id;
-                    std::cout << search_intf.class_list[classId] << " " << classId << " " << detection.confidence << " "<< detection.box.x+(detection.box.width/2) << " "<< detection.box.y+(detection.box.height/2) << std::endl;
+                    if (settings.debug_print) {
+                        std::cout << search_intf.class_list[classId] << " " << classId << " " << detection.confidence << " "<< detection.box.x+(detection.box.width/2) << " "<< detection.box.y+(detection.box.height/2) << std::endl;
+                        }
                 }
                 search_intf.output = output;
                 frame_count++;
             }
         }
     }
+    cv::cuda::resetDevice();
 
-    if (global_debug_print) {std::cout << "search thread finished" << std::endl;}
+    if (global_debug_print) {std::cout << "Search thread finished" << std::endl;}
     if (!finish_error) {return 0;}
     else {
         global_running.store(false);

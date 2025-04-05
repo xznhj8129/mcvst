@@ -7,6 +7,7 @@
 
 class SettingsClass {
     public:
+        bool debug_print;
         std::string cfgFile;
         int captureType;
         std::string capturePath;
@@ -32,6 +33,8 @@ class SettingsClass {
         int init_boxsize;
         int oftpoints;
         bool oftfeatures;
+        int oft_winsize;
+        int oft_pyrlevels;
 
         int trackingFPS;
         int displayFPS;
@@ -63,6 +66,12 @@ class SettingsClass {
         int search_dnn_model_rows;
         bool search_limit_zone;
         double search_zone[4];
+
+        int movestep;
+        int test_frame;
+        int test_boxsize;
+        int test_x;
+        int test_y;
 
         SettingsClass();
         void Init(int argc, char** argv);

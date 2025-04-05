@@ -7,10 +7,42 @@
 #include <vector>
 #include <string>
 #include <unistd.h>
+#include <nlohmann/json.hpp>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
-#define FIFO_PATH "/tmp/input_fifo"
+/*
+Inputs:
+- Lock (bool, momentary)
+- Reset (bool, momentary)
+- Updown (-1 to 1)
+- Leftright (-1 to 1)
+- Boxsize (-1, 0, 1) (smaller or bigger)
+- Shutdown
 
-TrackInputs read_from_fifo() {
+*/
+
+std::string read_line_from_socket(int socket) {
+    std::string line;
+    char ch;
+    while (true) {
+        int n = recv(socket, &ch, 1, 0);
+        if (n <= 0) { // Error or disconnection
+            return "";
+        }
+        if (ch == '\n') {
+            break;
+        }
+        line += ch;
+    }
+    // Remove trailing '\r' for '\r\n' compatibility
+    if (!line.empty() && line.back() == '\r') {
+        line.pop_back();
+    }
+    return line;
+}
+
+TrackInputs read_from_fifo(std::string FIFO_PATH) {
     std::ifstream fifo(FIFO_PATH);
     std::string line;
     TrackInputs inputs;
@@ -93,9 +125,82 @@ int input_thread(SharedData& sharedData) {
             display_intf.setTerminalMode(false); // Restore terminal settings
         }
     }
-    else if (settings.inputType==1) //socket 
-    {
-        
+    else if (settings.inputType == 1) { // socket
+        int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+        if (serverSocket < 0) {
+            std::cerr << "Error: Unable to create server socket" << std::endl;
+            finish_error = true;
+            global_running.store(false);
+            return 1;
+        }
+        int myport = settings.socketport + 1;
+        struct sockaddr_in serverAddr;
+        serverAddr.sin_family = AF_INET;
+        serverAddr.sin_addr.s_addr = INADDR_ANY;
+        serverAddr.sin_port = htons(myport);
+
+        if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+            std::cerr << "Error: Unable to bind server socket" << std::endl;
+            close(serverSocket);
+            finish_error = true;
+            global_running.store(false);
+            return 1;
+        }
+
+        if (listen(serverSocket, 5) < 0) {
+            std::cerr << "Error: Unable to listen on server socket" << std::endl;
+            close(serverSocket);
+            finish_error = true;
+            global_running.store(false);
+            return 1;
+        }
+
+        std::cout << "Input server listening on port " << myport << std::endl;
+
+        while (global_running) {
+            struct sockaddr_in clientAddr;
+            socklen_t clientLen = sizeof(clientAddr);
+            int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientLen);
+            if (clientSocket < 0) {
+                if (global_running) {
+                    std::cerr << "Error: Unable to accept client connection" << std::endl;
+                }
+                continue; // Try accepting another connection
+            }
+
+            //std::cout << "Client connected" << std::endl;
+            int last_btn1 = 0;
+
+            while (global_running) {
+                std::string line = read_line_from_socket(clientSocket);
+                if (line.empty()) {
+                    break; // Client disconnected
+                }
+
+                try {
+                    nlohmann::json j = nlohmann::json::parse(line);
+                    TrackInputs inputs;
+                    inputs.lock = j["lock"].get<int>();
+                    inputs.unlock = j["reset"].get<int>();
+                    inputs.leftright = j["lr"].get<float>();
+                    inputs.updown = j["ud"].get<float>();
+                    inputs.boxsize = j["boxsize"].get<int>(); // Assuming integer input
+                    inputs.exit = j["shutdown"].get<int>();
+                    inputs.valid = true;
+
+                    input_intf.input_vec(inputs, last_btn1);
+                    last_btn1 = inputs.lock;
+                } catch (const std::exception& e) {
+                    std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+                }
+                send(clientSocket, "x", 1, 0);
+            }
+
+            close(clientSocket);
+            //std::cout << "Client disconnected" << std::endl;
+        }
+
+        close(serverSocket);
     }
     else if (settings.inputType==2) //serial
     {
@@ -106,7 +211,7 @@ int input_thread(SharedData& sharedData) {
         int last_btn1 = 0;
         while (global_running) {
             try {
-                TrackInputs inputs = read_from_fifo(); // use settings.inputPath
+                TrackInputs inputs = read_from_fifo(settings.inputPath); // use settings.inputPath
                 if (inputs.valid) {
                     input_intf.input_vec(inputs, last_btn1);
                     last_btn1 = inputs.lock;
@@ -116,6 +221,34 @@ int input_thread(SharedData& sharedData) {
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
+    }
+    else if (settings.inputType==4) //test loop
+    {
+        int set_frame = settings.test_frame;
+        int set_x = settings.test_x;
+        int set_y = settings.test_y;
+        int set_boxsize = settings.test_boxsize;
+        bool lock = false;
+        int lostframe;
+
+
+        while (global_running) {
+            //std::cout << framecounter << std::endl;
+            if (framecounter == set_frame && !lock) {
+                track_intf.boxsize = set_boxsize;
+                std::cout << "Test lock" << std::endl;
+                track_intf.lock(set_x, set_y);
+                lock = true;
+            }
+            if (framecounter > set_frame+3 && lock && !track_intf.locked) {
+                lostframe = framecounter;
+                std::cout << "Track lost at " << lostframe << std::endl;
+                lock = false;
+                global_running.store(false);
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
     }
 
     if (global_debug_print) {std::cout << "input thread finished" << std::endl;}

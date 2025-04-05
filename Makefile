@@ -5,7 +5,7 @@ TARGET := tracker
 SRC_DIR := src
 OBJ_DIR := obj
 
-CPPFLAGS := -Iinclude -MMD -MP $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --cflags)
+CPPFLAGS := -Iinclude -MMD -MP $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --cflags) 
 CXXFLAGS := -std=c++17 -Wall -Wextra -Ofast -march=native -mcpu=native -mtune=native -pg
 LDFLAGS  := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-L)
 LDLIBS   := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-l) -pthread -lconfig++ -lcurl -pg

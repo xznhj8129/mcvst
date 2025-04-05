@@ -37,5 +37,6 @@ int main(int argc, char** argv) {
     trackThread.join();
     inputThread.join();
     outputThread.join();
+    
     return 0;
 }

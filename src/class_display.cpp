@@ -9,6 +9,7 @@ void DisplayInterface::Init(int displaytype) {
     if (settings.osdColor=="white") {osdcolor = cv::Scalar(255, 255, 255);}
     else if (settings.osdColor=="black") {osdcolor = cv::Scalar(0, 0, 0);}
     else if (settings.osdColor=="red") {osdcolor = cv::Scalar(0, 0, 255);}
+    else if (settings.osdColor=="green") {osdcolor = cv::Scalar(0, 255, 0);}
     linesize = settings.osdLinesize;
     displayType = displaytype;
 };
@@ -61,6 +62,34 @@ void DisplayInterface::draw_cornerbox(cv::Mat& frame, cv::Point poi, int boxsize
     // Bottom-right corner
     cv::line(frame, bottomright, bottomright - cv::Point(boxsize / 4, 0), osdcolor, linesize); // Horizontal
     cv::line(frame, bottomright, bottomright - cv::Point(0, boxsize / 4), osdcolor, linesize); // Vertical
+}
+
+void DisplayInterface::draw_cornerrect(cv::Mat& frame, const cv::Rect& roi) {
+    // Calculate corner points based on rectangle dimensions
+    const cv::Point tl(roi.x, roi.y);                     // Top-left
+    const cv::Point tr(roi.x + roi.width, roi.y);         // Top-right
+    const cv::Point bl(roi.x, roi.y + roi.height);        // Bottom-left
+    const cv::Point br(roi.x + roi.width, roi.y + roi.height); // Bottom-right
+
+    // Calculate corner line lengths as 25% of respective dimensions
+    const int hLength = roi.width / 4;   // Horizontal line length
+    const int vLength = roi.height / 4;  // Vertical line length
+
+    // Draw top-left corner
+    cv::line(frame, tl, tl + cv::Point(hLength, 0), osdcolor, linesize);  // Right
+    cv::line(frame, tl, tl + cv::Point(0, vLength), osdcolor, linesize); // Down
+
+    // Draw top-right corner
+    cv::line(frame, tr, tr - cv::Point(hLength, 0), osdcolor, linesize); // Left
+    cv::line(frame, tr, tr + cv::Point(0, vLength), osdcolor, linesize);  // Down
+
+    // Draw bottom-left corner
+    cv::line(frame, bl, bl + cv::Point(hLength, 0), osdcolor, linesize);  // Right
+    cv::line(frame, bl, bl - cv::Point(0, vLength), osdcolor, linesize);  // Up
+
+    // Draw bottom-right corner
+    cv::line(frame, br, br - cv::Point(hLength, 0), osdcolor, linesize); // Left
+    cv::line(frame, br, br - cv::Point(0, vLength), osdcolor, linesize); // Up
 }
 
 void DisplayInterface::draw_track(cv::Mat& frame) {

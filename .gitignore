@@ -17,3 +17,5 @@ obs.cfg
 .change
 checkchange.sh
 synczero2.sh
+test.py
+.vscode/

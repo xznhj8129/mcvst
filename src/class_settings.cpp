@@ -31,7 +31,7 @@ void SettingsClass::Init(int argc, char** argv) {
             try {
                 config.readFile(cfgFile.c_str());
             } catch (libconfig::FileIOException &e) {
-                std::cerr << "FileIOException occurred. Could not read cam.cfg!\n";
+                std::cerr << "FileIOException occurred. Could not read" << cfgFile.c_str() << "\n";
                 exit(EXIT_FAILURE);
             } catch (libconfig::ParseException &e) {
                 std::cerr << "Parse error at " << e.getFile() << ":" << e.getLine()
@@ -41,9 +41,14 @@ void SettingsClass::Init(int argc, char** argv) {
 
             std::string line;
             try {
-                // Pull from config
+                line = "debugprint";       debug_print = config.lookup(line);
+                line = "socketport";       socketport = config.lookup(line);
+                line = "movestep";         movestep = config.lookup(line);
+
                 line = "input";            intype = config.lookup(line).c_str();
-                line = "inputpath";        inputPath = config.lookup(line).c_str();
+                line = "inputpath";        
+                if (intype != "socket" && intype !="test") {inputPath = config.lookup(line).c_str();}
+
                 line = "trackingfps";      trackingFPS = config.lookup(line);
                 line = "searchfps";        searchFPS = config.lookup(line);
                 line = "displayfps";       displayFPS = config.lookup(line);
@@ -53,14 +58,16 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "capturepath";      capturePath = config.lookup(line).c_str();
                 line = "capformat";        capFormat = config.lookup(line).c_str();
                 line = "capsize";
-                {
-                    // if 'auto', do nothing; else read first two ints for width/height
-                    std::string capsizearg = config.lookup(line).c_str();
-                    if (capsizearg != "auto") {
-                        capSize.width  = config.lookup(line)[0];
-                        capSize.height = config.lookup(line)[1];
-                    }
+
+                const libconfig::Setting& capsizesetting = config.lookup(line);
+                if (capsizesetting.getLength() == 2) {
+                    capSize.width  = capsizesetting[0]; 
+                    capSize.height = capsizesetting[1]; 
                 }
+                else if (capsizesetting.getLength() == 1 || capsizesetting.getLength() > 2 ) {
+                    throw std::runtime_error("Invalid 'capsize' setting in config file.");
+                }
+
                 line = "cap_wb";          capWB = config.lookup(line);
                 line = "cap_br";          capBrightness = config.lookup(line);
                 line = "cap_contrast";    capContrast = config.lookup(line);
@@ -90,11 +97,7 @@ void SettingsClass::Init(int argc, char** argv) {
 
                 line = "output";              outtype = config.lookup(line).c_str();
                 line = "outputpath";
-                if (outtype == "socket") {
-                    socketport = config.lookup(line);
-                } else {
-                    outputPath = config.lookup(line).c_str();
-                }
+                if (outtype != "socket" && outtype!="none") {outputPath = config.lookup(line).c_str();}
 
                 line = "search";                 searchtype = config.lookup(line).c_str();
                 line = "dnn_model";              search_dnn_model = config.lookup(line).c_str();
@@ -110,6 +113,10 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "confidence_threshold";   search_confidence_threshold = config.lookup(line);
                 line = "rows";                   search_dnn_model_rows = config.lookup(line);
                 line = "search_limit_zone";      search_limit_zone = config.lookup(line);
+                line = "test_frame";            test_frame = config.lookup(line);
+                line = "test_x";            test_x = config.lookup(line);
+                line = "test_y";            test_y = config.lookup(line);
+                line = "test_boxsize";            test_boxsize = config.lookup(line);
 
                 line = "search_zone";
                 search_zone[0] = config.lookup(line)[0];
@@ -132,7 +139,7 @@ void SettingsClass::Init(int argc, char** argv) {
         //
         // No config file: parse other command-line arguments to fill in the blanks
         //
-        else {
+        else {std::cout << "Use the config file" << std::endl;}/*
             if (arg.find("--input=") == 0) {
                 intype = arg.substr(8);
             }
@@ -294,7 +301,7 @@ void SettingsClass::Init(int argc, char** argv) {
                 std::cerr << "Unknown or incomplete argument: " << arg << std::endl;
                 exit(1);
             }
-        }
+        }*/
     }
 
     // Check for missing capture path
@@ -313,7 +320,7 @@ void SettingsClass::Init(int argc, char** argv) {
 
     if (captype == "" || captype=="v4l2") { captureType = 1; }
     else if (captype == "gstreamer")      { captureType = 2; }
-    else if (captype == "opencv")         { captureType = 3; }
+    else if (captype == "file")         { captureType = 3; }
     else if (captype == "rtsp")           { captureType = 4; }
 
     if (markertype == "" || markertype=="box")    { trackMarker = 1; }
@@ -331,13 +338,14 @@ void SettingsClass::Init(int argc, char** argv) {
     else if (tracktype == "denseoft")         { trackerType = 6; }
 
     if (intype == "")          { inputType = 0; }
-    else if (intype == "serial")  { inputType = 1; }
-    else if (intype == "socket")  { inputType = 2; }
+    else if (intype == "socket")  { inputType = 1; }
+    else if (intype == "serial")  { inputType = 2; }
     else if (intype == "fifo")    { inputType = 3; }
+    else if (intype == "test")    { inputType = 4; }
 
     if (outtype == "")         { outputType = 0; }
-    else if (outtype == "serial")  { outputType = 1; }
-    else if (outtype == "socket")  { outputType = 2; }
+    else if (outtype == "socket")  { outputType = 1; }
+    else if (outtype == "serial")  { outputType = 2; }
     else if (outtype == "fifo")    { outputType = 3; }
 
     if (searchtype == "")       { searchType = 0; }
@@ -346,6 +354,7 @@ void SettingsClass::Init(int argc, char** argv) {
     // Provide defaults for anything still unset
     if (capturePath.empty())   { capturePath = "/dev/video0"; }
     if (processScale == 0)     { processScale = 1; }
+    if (movestep == 0)         { movestep = 20; }
     if (init_boxsize == 0)     { init_boxsize = 50; }
     if (oftpoints == 0 || (trackerType != 1)) { oftpoints = 1; }
     if (capBrightness == 0)    { capBrightness = 50; }
@@ -354,9 +363,11 @@ void SettingsClass::Init(int argc, char** argv) {
     else                       { osdColor = color; }
     if (capWB == 0)            { capWB = 50; }
     if (capContrast == 0)      { capContrast = 50; }
+    if (oft_winsize == 0)      { oft_winsize = 15; }
+    if (oft_pyrlevels == 0)     { oft_pyrlevels = 2; }
     if (capSat == 0)           { capSat = 50; }
     if (capFormat.empty())     { capFormat = "BGR3"; }
-    if (capFPS == 0)           { capFPS = 30; }
+    //if (capFPS == 0)           { capFPS = 30; }
     if (trackingFPS == 0)      { trackingFPS = 100; }
     if (searchFPS == 0)        { searchFPS = 30; }
     if (displayFPS == 0)       { displayFPS = 60; }

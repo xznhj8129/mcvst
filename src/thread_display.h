@@ -164,15 +164,15 @@ int display_thread(SharedData& sharedData) {
 
         if (frame.empty()) {
             fc++;
-            std::cout << "empty frame " << fc << std::endl;
+            if (settings.debug_print) {std::cout << "empty frame " << fc << std::endl;}
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
 
             /*for (const auto& point : track_intf.oftdata.old_points) {
-                cv::circle(frame, point, 2, cv::Scalar(255, 255, 255), -1);}
+                cv::circle(frame, point, 2, display_intf.osdcolor, -1);}
             for (const auto& point : track_intf.bad_points) {
-                cv::circle(frame, point, 2, cv::Scalar(255, 0, 0), -1);}
-            cv::rectangle(frame, track_intf.roi, cv::Scalar(255, 255, 255), display_intf.linesize);*/
+                cv::circle(frame, point, 2, display_intf.osdcolor, -1);}
+            cv::rectangle(frame, track_intf.roi, display_intf.osdcolor, display_intf.linesize);*/
 
             if (track_intf.locked) {
                 display_intf.draw_track(frame);
@@ -193,8 +193,14 @@ int display_thread(SharedData& sharedData) {
                     std::string trimmed_confidence = oss.str();
 
                     std::string label = classStr + " " + trimmed_confidence;
-                    cv::rectangle(frame, box, cv::Scalar(255, 255, 255), display_intf.linesize);
-                    cv::putText(frame, label, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
+                    if (detection.confidence >= settings.search_target_conf) {
+                        cv::rectangle(frame, box, display_intf.osdcolor, display_intf.linesize);
+                    }
+                    else {
+                        display_intf.draw_cornerrect(frame, box);
+                    }
+                    
+                    cv::putText(frame, label, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, display_intf.osdcolor);
                     //std::cout << classStr << " " << classId << " " << detection.confidence << " " << box.x+(box.width/2) << " "<< box.y+(box.height/2) << std::endl;
                 }                
             }
@@ -210,7 +216,7 @@ int display_thread(SharedData& sharedData) {
                     std::ostringstream fps_label;
                     fps_label << std::fixed << std::setprecision(2);
                     fps_label << "FPS: " << fps;
-                    cv::putText(frame, fps_label.str(), cv::Point(10, 25), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+                    cv::putText(frame, fps_label.str(), cv::Point(10, 25), cv::FONT_HERSHEY_SIMPLEX, 1, display_intf.osdcolor, 2);
                 }
             }
 

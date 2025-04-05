@@ -13,6 +13,10 @@ void TrackInterface::Init(cv::Size cap_image_size, double scale) {
     framesize = cap_image_size;
     image_scale = scale;
     boxsize = settings.init_boxsize * scale;
+    movestep = settings.movestep;
+    oft_pyrlevels = settings.oft_pyrlevels;
+    oft_winsize = settings.oft_winsize;
+
 }
 
 cv::Rect TrackInterface::scaledRoi() {
@@ -150,11 +154,13 @@ void TrackInterface::lock(const int x, const int y) {
     }
 
 
-    /*std::cout << 
-    "lock " << 
-    "poi " << poi << 
+    std::cout << 
+    "lock at frame " <<
+    framecounter <<  
+    " poi " << poi << 
     " image scale: " << image_scale << 
-    std::endl;*/
+    " boxsize: " << boxsize <<
+    std::endl;
 
     lastroi = roi;
     target_lock = true;

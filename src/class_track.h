@@ -8,7 +8,7 @@ class TrackInterface {
 
     public:
         bool setup = false;
-        int movestep = 20;
+        int movestep;
         cv::Size framesize;
         double image_scale;
         cv::Rect roi;
@@ -59,6 +59,8 @@ class TrackInterface {
             double& outScale,
             cv::Point2f& outTranslation
         );
+        int oft_winsize;
+        int oft_pyrlevels;
 
 };
 extern TrackInterface track_intf;

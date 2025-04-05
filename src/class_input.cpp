@@ -70,8 +70,8 @@ void InputInterface::input_vec(TrackInputs inputs, int last_btn1) {
 
         if (inputs.lock && last_btn1 == 0) {input_command(1);}
         else if (inputs.unlock) {input_command(2);}
-        if (inputs.updown >0.1 || inputs.updown < -0.1) {track_intf.moveVertical(inputs.updown);}  // UP_ARROW
-        if (inputs.leftright >0.1 || inputs.leftright < -0.1) {track_intf.moveHorizontal(inputs.leftright);}  // UP_ARROW
+        if (inputs.updown >0.05 || inputs.updown < -0.05) {track_intf.moveVertical(inputs.updown);}  // UP_ARROW
+        if (inputs.leftright >0.05 || inputs.leftright < -0.05) {track_intf.moveHorizontal(inputs.leftright);}  // UP_ARROW
         if (inputs.boxsize== -1) {input_command(7);} // s
         else if (inputs.boxsize == 1) {input_command(8);} // a
     }

@@ -5,4 +5,5 @@
 bool global_debug_print = true;
 std::atomic<bool> global_running(true); 
 std::atomic<int> latestKeyCode{0}; // Use 0 to indicate no key press
+std::atomic<int> framecounter{0}; 
 

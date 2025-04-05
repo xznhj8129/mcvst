@@ -30,6 +30,7 @@ class DisplayInterface {
         void draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, std::string text);
         void draw_search_detections(cv::Mat& frame, SearchResults results);
         void draw_cornerbox(cv::Mat& frame, cv::Point poi, int boxsize);
+        void draw_cornerrect(cv::Mat& frame, const cv::Rect& roi);
 
         void clearFramebuffer();
         void writeImageToFramebuffer(const cv::Mat& inputImage);

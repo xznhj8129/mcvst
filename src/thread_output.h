@@ -11,6 +11,43 @@
 //#include <iomanip>
 //#include <cstring>
 //#include <fstream>
+#include <sstream>  
+#include <sstream>
+#include <iomanip> // For std::fixed and std::setprecision
+#include <nlohmann/json.hpp>
+
+std::string createDataPacket() {
+    std::ostringstream detects;
+    detects << "[";
+    if (settings.searchType > 0) {
+        int detections = search_intf.output.size();
+        for (int i = 0; i < detections; ++i) {
+            auto& detection = search_intf.output[i]; // Use reference to avoid copy
+            detects << "[" << detection.class_id << "," << detection.confidence << ","
+                   << "[" << detection.box.x << "," << detection.box.y << ","
+                          << detection.box.width << "," << detection.box.height << "]"
+                   << "]";
+            if (i < detections - 1) detects << ","; // Avoid trailing comma
+        }
+    }
+    detects << "]"; // Use JSON array syntax
+    
+    double data_az = track_intf.angle.x;
+    double data_el = track_intf.angle.y;
+    int data_mode = track_intf.target_lock;
+
+    std::ostringstream packet;
+    packet << "{ ";
+    packet << "\"locked\": " << data_mode << ", ";
+    packet << "\"tracking\": ["
+           << std::fixed << std::setprecision(6) << data_az << ","
+           << std::fixed << std::setprecision(6) << data_el << "], ";
+    packet << "\"detections\": " << detects.str() << "}\n";
+    
+    // Debug output
+    std::string result = packet.str();
+    return result;
+}
 
 void handleClientRequests(int clientSocket) {
     char buffer[1024];
@@ -21,10 +58,7 @@ void handleClientRequests(int clientSocket) {
             return;
         }
         buffer[bytesRead] = '\0';
-        double data_az = track_intf.angle.x; // might need to do atomic for thread safety
-        double data_el = track_intf.angle.y; //atom_elevation.load();
-        int data_mode = track_intf.target_lock;
-        std::string data = std::to_string(data_mode) + "," + std::to_string(data_az) + ","+std::to_string(data_el);
+        std::string data = createDataPacket();
         send(clientSocket, data.c_str(), data.size(), 0);
     }
 }
@@ -33,9 +67,8 @@ int output_thread(SharedData& sharedData) {
     bool finish_error;
 
     // insert thread sleeper here
-    if (settings.outputType==1) {} // serial
 
-    else if (settings.outputType==2) { // socket
+    if (settings.outputType==1) { // socket
         int serverSocket, clientSocket;
         struct sockaddr_in serverAddr, clientAddr;
         socklen_t clientLen = sizeof(clientAddr);
@@ -63,7 +96,7 @@ int output_thread(SharedData& sharedData) {
         std::cout << "Server live at port " << settings.socketport << std::endl;
         while (global_running) { // Accept client connections and handle them in separate threads
             clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientLen);
-            std::cout << "Client connected" << std::endl;
+            //std::cout << "Client connected" << std::endl;
             if (clientSocket < 0) {
                 std::cerr << "Error: Unable to accept client connection" << std::endl;
                 close(serverSocket);
@@ -75,20 +108,17 @@ int output_thread(SharedData& sharedData) {
         }
         close(serverSocket);
     }
+    else if (settings.outputType==2) {} // serial
     else if (settings.outputType==3) { // fifo
         while (global_running) { 
             std::ofstream fifo;
-            std::string fifo_path = "/tmp/mcvst_output";
-            fifo.open(fifo_path);
+            fifo.open(settings.outputPath);
 
             if (!fifo.is_open()) {
                 std::cerr << "Error: Could not open FIFO file." << std::endl;
             }
             else {
-                double data_az = track_intf.angle.x; // might need to do atomic for thread safety
-                double data_el = track_intf.angle.y; //atom_elevation.load();
-                int data_mode = track_intf.locked;
-                std::string data = std::to_string(data_mode) + "," + std::to_string(data_az) + ","+std::to_string(data_el);
+                std::string data = createDataPacket();
                 fifo << data << std::endl;
                 fifo.close();
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
