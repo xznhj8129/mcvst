@@ -72,6 +72,8 @@ class SettingsClass {
         int test_boxsize;
         int test_x;
         int test_y;
+        int maxits;
+        double epsilon;
 
         SettingsClass();
         void Init(int argc, char** argv);

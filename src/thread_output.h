@@ -34,7 +34,7 @@ std::string createDataPacket() {
     
     double data_az = track_intf.angle.x;
     double data_el = track_intf.angle.y;
-    int data_mode = track_intf.target_lock;
+    int data_mode = track_intf.locked;
 
     std::ostringstream packet;
     packet << "{ ";
@@ -50,10 +50,31 @@ std::string createDataPacket() {
 }
 
 void handleClientRequests(int clientSocket) {
+    // Set a 5-second timeout for recv()
+    struct timeval timeout;
+    timeout.tv_sec = 1;  // timeout in seconds
+    timeout.tv_usec = 0;
+    if (setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
+        perror("setsockopt failed");
+        // Optionally handle the error; here we simply continue
+    }
+
     char buffer[1024];
     while (global_running) {
-        ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-        if (bytesRead <= 0) {
+        ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytesRead < 0) {
+            // Check if the error is due to a timeout
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                std::cerr << "recv() timeout occurred" << std::endl;
+                continue; // Or break; depending on how you want to handle timeouts
+            } else {
+                perror("recv error");
+                close(clientSocket);
+                return;
+            }
+        }
+        if (bytesRead == 0) {
+            // Connection closed by the client
             close(clientSocket);
             return;
         }
@@ -64,47 +85,73 @@ void handleClientRequests(int clientSocket) {
 }
 
 int output_thread(SharedData& sharedData) {
-    bool finish_error;
+    bool finish_error = false;
 
-    // insert thread sleeper here
+    // insert thread sleeper here if needed
 
-    if (settings.outputType==1) { // socket
+    if (settings.outputType == 1) { // socket
         int serverSocket, clientSocket;
         struct sockaddr_in serverAddr, clientAddr;
         socklen_t clientLen = sizeof(clientAddr);
+        
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         if (serverSocket < 0) {
             std::cerr << "Error: Unable to create server socket" << std::endl;
             finish_error = true;
             global_running.store(false);
         }
+        
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_port = htons(settings.socketport);
+        
         if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
             std::cerr << "Error: Unable to bind server socket" << std::endl;
             close(serverSocket);
             finish_error = true;
             global_running.store(false);
         }
+        
         if (listen(serverSocket, 5) < 0) {
             std::cerr << "Error: Unable to listen on server socket" << std::endl;
             close(serverSocket);
             finish_error = true;
             global_running.store(false);
         }
+        
         std::cout << "Server live at port " << settings.socketport << std::endl;
-        while (global_running) { // Accept client connections and handle them in separate threads
-            clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientLen);
-            //std::cout << "Client connected" << std::endl;
-            if (clientSocket < 0) {
-                std::cerr << "Error: Unable to accept client connection" << std::endl;
-                close(serverSocket);
-                finish_error = true;
+        
+        while (global_running) {
+            fd_set readSet;
+            struct timeval timeout;
+            FD_ZERO(&readSet);
+            FD_SET(serverSocket, &readSet);
+            
+            // Set a 1-second timeout for select
+            timeout.tv_sec = 1;
+            timeout.tv_usec = 0;
+            
+            int selectResult = select(serverSocket + 1, &readSet, NULL, NULL, &timeout);
+            if (selectResult < 0) {
+                perror("select");
                 break;
+            } else if (selectResult == 0) {
+                // Timeout occurred, no connection ready. Loop again.
+                continue;
             }
-            std::thread clientThread(handleClientRequests, clientSocket);
-            clientThread.detach(); // Detach the thread to let it run independently
+            
+            if (FD_ISSET(serverSocket, &readSet)) {
+                clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientLen);
+                if (clientSocket < 0) {
+                    std::cerr << "Error: Unable to accept client connection" << std::endl;
+                    close(serverSocket);
+                    finish_error = true;
+                    break;
+                }
+                // Handle the client connection in a detached thread
+                std::thread clientThread(handleClientRequests, clientSocket);
+                clientThread.detach();
+            }
         }
         close(serverSocket);
     }

@@ -19,3 +19,5 @@ checkchange.sh
 synczero2.sh
 test.py
 .vscode/
+*.log
+mcvst.txt

@@ -49,7 +49,7 @@ def gen_command(joystick):
     pygame.event.pump()
     axis, buttons = get_joystick(joystick)
     cmd = {}
-    cmd["lock"] = buttons[2]
+    cmd["lock"] = buttons[7]
     cmd["reset"] = buttons[3]
     cmd["lr"] = axis[2]
     cmd["ud"] = axis[3] * -1
@@ -58,7 +58,6 @@ def gen_command(joystick):
     j = json.dumps(cmd)+'\n'
     return j
     
-
 
 # Initialize pygame and the joystick
 pygame.init()
@@ -80,7 +79,7 @@ run = True
 connected = False
 while run:
     try:
-        server_address = ('localhost', 8101)  # Adjust port number as needed
+        server_address = ('192.168.0.46', 8101)  # Adjust port number as needed
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serv:
             serv.settimeout(5)
             serv.connect(server_address)
@@ -90,7 +89,6 @@ while run:
                 try:
                     
                     c = gen_command(joystick)
-                    print(c)
                     serv.send(bytes(c,encoding="utf-8"))
 
                     r = serv.recv(1)

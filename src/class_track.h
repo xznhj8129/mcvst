@@ -16,18 +16,30 @@ class TrackInterface {
         cv::Point lastpoi;
         cv::Point poi;
         int boxsize;
-        bool target_lock = false;
+
+        bool track = false;
+        bool locking = false;
         bool locked = false;
+
         bool first_lock = true;
         bool lock_change = false;
         bool lost_lock = false;
-        bool guiding = false;
         float track_fps;
+
         Vec2D angle;
         VecArray angmem;
         VecArray velmem;
+
+        int oft_winsize;
+        int oft_pyrlevels;
+        int maxits;
+        double epsilon;
+        double points_offset;
+        double point_tolerance = 0.5f;
+
         TrackInterface();
         void Init(cv::Size cap_image_size, const double scale);
+
         cv::Point scaledPoi();
         cv::Rect scaledRoi();
         OFTData oftdata;
@@ -42,6 +54,7 @@ class TrackInterface {
         void update(cv::Point newtgt);
         void lock(const int x, const int y);
         void breaklock();
+        void clearlock();
         void defineRoi(cv::Point2f poi);
         void changeROI(int keyCode);
         bool isPointInROI(const cv::Point2f& point, float tolerance);
@@ -59,8 +72,7 @@ class TrackInterface {
             double& outScale,
             cv::Point2f& outTranslation
         );
-        int oft_winsize;
-        int oft_pyrlevels;
+        float getPointsOffset();
 
 };
 extern TrackInterface track_intf;

@@ -88,6 +88,8 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "default_trackbox_size"; init_boxsize = config.lookup(line);
                 line = "oft_points";          oftpoints = config.lookup(line);
                 line = "oft_trackfeatures";   oftfeatures = config.lookup(line);
+                line = "epsilon";           epsilon = config.lookup(line);
+                line = "maxits";            maxits = config.lookup(line);
                 line = "markertype";          markertype = config.lookup(line).c_str();
                 line = "pipper";              showPipper = config.lookup(line);
                 line = "record";              record_output = config.lookup(line);
@@ -337,24 +339,26 @@ void SettingsClass::Init(int argc, char** argv) {
     else if (tracktype == "mosse")            { trackerType = 4; }
     else if (tracktype == "denseoft")         { trackerType = 6; }
 
-    if (intype == "")          { inputType = 0; }
+    if (intype == "" || intype == "none")          { inputType = 0; }
     else if (intype == "socket")  { inputType = 1; }
     else if (intype == "serial")  { inputType = 2; }
     else if (intype == "fifo")    { inputType = 3; }
     else if (intype == "test")    { inputType = 4; }
 
-    if (outtype == "")         { outputType = 0; }
+    if (outtype == "" || outtype == "none")         { outputType = 0; }
     else if (outtype == "socket")  { outputType = 1; }
     else if (outtype == "serial")  { outputType = 2; }
     else if (outtype == "fifo")    { outputType = 3; }
 
-    if (searchtype == "")       { searchType = 0; }
+    if (searchtype == "" || searchtype == "none")       { searchType = 0; }
     else if (searchtype == "yolo") { searchType = 1; }
 
     // Provide defaults for anything still unset
     if (capturePath.empty())   { capturePath = "/dev/video0"; }
     if (processScale == 0)     { processScale = 1; }
     if (movestep == 0)         { movestep = 20; }
+    if (maxits == 0)         { maxits = 10; }
+    if (epsilon == 0.03)         { epsilon =  0.03; }
     if (init_boxsize == 0)     { init_boxsize = 50; }
     if (oftpoints == 0 || (trackerType != 1)) { oftpoints = 1; }
     if (capBrightness == 0)    { capBrightness = 50; }

@@ -16,6 +16,12 @@ void TrackInterface::Init(cv::Size cap_image_size, double scale) {
     movestep = settings.movestep;
     oft_pyrlevels = settings.oft_pyrlevels;
     oft_winsize = settings.oft_winsize;
+    maxits = settings.maxits;
+    epsilon = settings.maxits;
+    track = false;
+    
+    points_offset = 5.0f;
+    point_tolerance = 0.5f;
 
 }
 
@@ -28,7 +34,10 @@ cv::Point TrackInterface::scaledPoi() {
 }
 
 void TrackInterface::moveVertical(float v) {
-    int move = v * movestep;
+    int mv;
+    if (locked) {mv = movestep / 2;}
+    else {mv = movestep;}
+    int move = v * mv;
     poi.y =  std::min(std::max(0.f,static_cast<float>(poi.y - move)), static_cast<float>(framesize.height - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
@@ -36,7 +45,10 @@ void TrackInterface::moveVertical(float v) {
 }
 
 void TrackInterface::moveHorizontal(float h) {
-    int move = h * movestep;
+    int mv;
+    if (locked) {mv = movestep / 2;}
+    else {mv = movestep;}
+    int move = h * mv;
     poi.x = std::min(std::max(0.f, static_cast<float>(poi.x + move)), static_cast<float>(framesize.width - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
@@ -44,28 +56,40 @@ void TrackInterface::moveHorizontal(float h) {
 }
 
 void TrackInterface::moveUp() {
-    poi.y = std::max(0.f, static_cast<float>(poi.y - movestep)); 
+    int mv;
+    if (locked) {mv = movestep / 2;}
+    else {mv = movestep;}
+    poi.y = std::max(0.f, static_cast<float>(poi.y - mv)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
 }
 
 void TrackInterface::moveDown() {
-    poi.y = std::min(static_cast<float>(poi.y + movestep), static_cast<float>(framesize.height - 1)); 
+    int mv;
+    if (locked) {mv = movestep / 2;}
+    else {mv = movestep;}
+    poi.y = std::min(static_cast<float>(poi.y + mv), static_cast<float>(framesize.height - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
 }
 
 void TrackInterface::moveLeft() {
-    poi.x = std::max(0.f, static_cast<float>(poi.x - movestep)); 
+    int mv;
+    if (locked) {mv = movestep / 2;}
+    else {mv = movestep;}
+    poi.x = std::max(0.f, static_cast<float>(poi.x - mv)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
 }
 
 void TrackInterface::moveRight() {
-    poi.x = std::min(static_cast<float>(poi.x + movestep), static_cast<float>(framesize.width - 1)); 
+    int mv;
+    if (locked) {mv = movestep / 2;}
+    else {mv = movestep;}
+    poi.x = std::min(static_cast<float>(poi.x + mv), static_cast<float>(framesize.width - 1)); 
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     lock_change = true;
     update(poi);
@@ -88,18 +112,22 @@ void TrackInterface::smallerBox() {
 }
 
 std::vector<cv::Point2f> TrackInterface::roiPoints() {
-    float point_dist = 1;
-    cv::Point2f c1 = cv::Point2f(poi.x - point_dist, poi.y - point_dist); 
-    cv::Point2f c2 = cv::Point2f(poi.x + point_dist, poi.y - point_dist); 
-    cv::Point2f c3 = cv::Point2f(poi.x - point_dist, poi.y + point_dist); 
-    cv::Point2f c4 = cv::Point2f(poi.x + point_dist, poi.y + point_dist); 
-    cv::Point2f c5 = cv::Point2f(poi.x , poi.y - point_dist); 
-    cv::Point2f c6 = cv::Point2f(poi.x , poi.y + point_dist); 
-    cv::Point2f c7 = cv::Point2f(poi.x - point_dist, poi.y ); 
-    cv::Point2f c8 = cv::Point2f(poi.x + point_dist, poi.y ); 
+    float offset = getPointsOffset();
+    cv::Point2f c1 = cv::Point2f(poi.x - offset, poi.y - offset); 
+    cv::Point2f c2 = cv::Point2f(poi.x + offset, poi.y - offset); 
+    cv::Point2f c3 = cv::Point2f(poi.x - offset, poi.y + offset); 
+    cv::Point2f c4 = cv::Point2f(poi.x + offset, poi.y + offset); 
+    cv::Point2f c5 = cv::Point2f(poi.x , poi.y - offset); 
+    cv::Point2f c6 = cv::Point2f(poi.x , poi.y + offset); 
+    cv::Point2f c7 = cv::Point2f(poi.x - offset, poi.y ); 
+    cv::Point2f c8 = cv::Point2f(poi.x + offset, poi.y ); 
     if (settings.oftpoints<=1) { return { poi }; }
     else if (settings.oftpoints == 5) { return { poi, c5, c6, c7, c8 }; }
     else if (settings.oftpoints == 9) { return { poi, c1, c2, c3, c4, c5, c6, c7, c8 }; }
+}
+
+float TrackInterface::getPointsOffset() {
+    return std::round(boxsize / 10.0f);
 }
 
 void TrackInterface::defineRoi(cv::Point2f newpoi) {
@@ -115,10 +143,6 @@ void TrackInterface::defineRoi(cv::Point2f newpoi) {
 }
 
 bool TrackInterface::isPointInROI(const cv::Point2f& point, float tolerance) {
-    //std::cout << point.x << " in " << track_intf.roi.x - (boxsize * tolerance);
-    //std::cout << " to " << (track_intf.roi.x + (boxsize * tolerance)) << std::endl;
-    //std::cout << point.y << " in " << (track_intf.roi.y - (boxsize * tolerance));
-    //std::cout << " to " << (track_intf.roi.y + (boxsize * tolerance)) << std::endl;
     return (point.x >= (track_intf.poi.x - (boxsize * tolerance)) && 
             point.x < (track_intf.poi.x + (boxsize * tolerance)) &&
             point.y >= (track_intf.poi.y - (boxsize * tolerance)) &&
@@ -131,7 +155,6 @@ void TrackInterface::update(cv::Point newtgt) {
         oftdata.old_points.clear();
         oftdata.old_points = roiPoints();
     }
-    //target_lock = true;
     lastroi = roi;
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
 }
@@ -163,7 +186,8 @@ void TrackInterface::lock(const int x, const int y) {
     std::endl;
 
     lastroi = roi;
-    target_lock = true;
+    track = true;
+    locking = true;
     locked = false;
     lost_lock = false;
     oftdata.old_points.clear();
@@ -173,9 +197,20 @@ void TrackInterface::lock(const int x, const int y) {
 }
 
 void TrackInterface::breaklock() {
+    std::cout << "Break lock" << std::endl;
+    track = false;
+    locking = false;
+    locked = false;
+    first_lock = true;
+    oftdata.old_points.clear();
+}
+
+void TrackInterface::clearlock() {
+    std::cout << "Clear lock" << std::endl;
     poi = cv::Point(track_intf.framesize.width/2, track_intf.framesize.height/2);
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
-    target_lock = false;
+    track = false;
+    locking = false;
     locked = false;
     first_lock = true;
     oftdata.old_points.clear();
@@ -209,7 +244,7 @@ void TrackInterface::changeROI(int keyCode) { //used in window, mmal...
             change = true;
             break;
         case 99: //c
-            target_lock = false;
+            locking = false;
             locked = false;
             break;
     }

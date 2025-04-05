@@ -158,6 +158,22 @@ int input_thread(SharedData& sharedData) {
         std::cout << "Input server listening on port " << myport << std::endl;
 
         while (global_running) {
+            fd_set readSet;
+            struct timeval timeout;
+            FD_ZERO(&readSet);
+            FD_SET(serverSocket, &readSet);
+            timeout.tv_sec = 1;    // 1-second timeout
+            timeout.tv_usec = 0;
+
+            int selectResult = select(serverSocket + 1, &readSet, NULL, NULL, &timeout);
+            if (selectResult < 0) {
+                perror("select");
+                break;
+            } else if (selectResult == 0) {
+                // Timeout occurred; no client is waiting. Loop again.
+                continue;
+            }
+
             struct sockaddr_in clientAddr;
             socklen_t clientLen = sizeof(clientAddr);
             int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientLen);
@@ -168,9 +184,7 @@ int input_thread(SharedData& sharedData) {
                 continue; // Try accepting another connection
             }
 
-            //std::cout << "Client connected" << std::endl;
             int last_btn1 = 0;
-
             while (global_running) {
                 std::string line = read_line_from_socket(clientSocket);
                 if (line.empty()) {
@@ -202,6 +216,7 @@ int input_thread(SharedData& sharedData) {
 
         close(serverSocket);
     }
+
     else if (settings.inputType==2) //serial
     {
 
@@ -231,21 +246,28 @@ int input_thread(SharedData& sharedData) {
         bool lock = false;
         int lostframe;
 
-
+        auto startTime = std::chrono::steady_clock::now();
         while (global_running) {
             //std::cout << framecounter << std::endl;
             if (framecounter == set_frame && !lock) {
                 track_intf.boxsize = set_boxsize;
                 std::cout << "Test lock" << std::endl;
+                startTime = std::chrono::steady_clock::now();  // Use steady_clock for consistency
                 track_intf.lock(set_x, set_y);
                 lock = true;
             }
-            if (framecounter > set_frame+3 && lock && !track_intf.locked) {
+            if (framecounter > set_frame + 3 && lock && !track_intf.locked) {
                 lostframe = framecounter;
                 std::cout << "Track lost at " << lostframe << std::endl;
+                auto endTime = std::chrono::steady_clock::now();
+                auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+                std::cout << "Time: " << elapsedTime.count() << " ms" << std::endl;
+                std::cout << "FPS: " << (lostframe - set_frame) / (elapsedTime.count() / 1000.0) << std::endl;
                 lock = false;
                 global_running.store(false);
+
             }
+
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 

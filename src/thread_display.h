@@ -168,9 +168,9 @@ int display_thread(SharedData& sharedData) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
 
-            /*for (const auto& point : track_intf.oftdata.old_points) {
+            for (const auto& point : track_intf.roiPoints()) {
                 cv::circle(frame, point, 2, display_intf.osdcolor, -1);}
-            for (const auto& point : track_intf.bad_points) {
+            /*for (const auto& point : track_intf.bad_points) {
                 cv::circle(frame, point, 2, display_intf.osdcolor, -1);}
             cv::rectangle(frame, track_intf.roi, display_intf.osdcolor, display_intf.linesize);*/
 
