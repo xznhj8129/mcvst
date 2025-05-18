@@ -27,7 +27,7 @@ std::string createDataPacket() {
                    << "[" << detection.box.x << "," << detection.box.y << ","
                           << detection.box.width << "," << detection.box.height << "]"
                    << "]";
-            if (i < detections - 1) detects << ","; // Avoid trailing comma
+            if (i < detections - 1) detects << ","; 
         }
     }
     detects << "]"; // Use JSON array syntax
@@ -103,7 +103,7 @@ int output_thread(SharedData& sharedData) {
         
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_addr.s_addr = INADDR_ANY;
-        serverAddr.sin_port = htons(settings.socketport);
+        serverAddr.sin_port = htons(settings.outputPort);
         
         if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
             std::cerr << "Error: Unable to bind server socket" << std::endl;
@@ -119,7 +119,7 @@ int output_thread(SharedData& sharedData) {
             global_running.store(false);
         }
         
-        std::cout << "Server live at port " << settings.socketport << std::endl;
+        std::cout << "Server live at port " << settings.outputPort << std::endl;
         
         while (global_running) {
             fd_set readSet;
@@ -136,7 +136,6 @@ int output_thread(SharedData& sharedData) {
                 perror("select");
                 break;
             } else if (selectResult == 0) {
-                // Timeout occurred, no connection ready. Loop again.
                 continue;
             }
             
@@ -148,7 +147,6 @@ int output_thread(SharedData& sharedData) {
                     finish_error = true;
                     break;
                 }
-                // Handle the client connection in a detached thread
                 std::thread clientThread(handleClientRequests, clientSocket);
                 clientThread.detach();
             }
@@ -171,8 +169,6 @@ int output_thread(SharedData& sharedData) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
         }
-
-
     }
 
     if (global_debug_print) {std::cout << "output thread finished" << std::endl;}

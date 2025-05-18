@@ -19,8 +19,8 @@ int tracking_thread(SharedData& sharedData) {
     int frame_count = 0;
     bool finish_error = false;
     cv::Size process_size((double)cap_intf.frameSize.width * track_intf.image_scale, (double)cap_intf.frameSize.height * track_intf.image_scale);
-    int update_frames = 0; //////////
-    int updc = 0;
+    //int update_frames = 0; //////////
+    //int updc = 0;
     bool ok = false;
     int fps;
     int total_frames;

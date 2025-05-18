@@ -1,20 +1,53 @@
-# Makefile
-CXX := g++
-TARGET := tracker
+# Makefile  ── full, self-contained
+CXX      := g++
+TARGET   := tracker
 
-SRC_DIR := src
-OBJ_DIR := obj
+# Source / object layout
+SRC_DIR  := src
+OBJ_DIR  := obj
 
-CPPFLAGS := -Iinclude -MMD -MP $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --cflags) 
-CXXFLAGS := -Wfatal-errors -fmax-errors=1  -std=c++17 -Wall -Wextra -Ofast -march=native -mcpu=native -mtune=native
-LDFLAGS  := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-L)
-LDLIBS   := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-l) -pthread -lconfig++ -lcurl -pg
+# Which build?  release (default) or debug
+BUILD    ?= release
 
-SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
-OBJECTS := $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
-DEPENDS := $(OBJECTS:.o=.d)
-NPROC := $(shell nproc)
+# ---------------------------------------------------------------------------
+# External libraries via pkg-config
+# ---------------------------------------------------------------------------
+PKG_CFLAGS := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --cflags)
+PKG_LIB_L  := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-L)
+PKG_LIB_l  := $(shell pkg-config opencv4 gstreamer-1.0 gstreamer-app-1.0 --libs-only-l)
 
+# ---------------------------------------------------------------------------
+# Common flags
+# ---------------------------------------------------------------------------
+CPPFLAGS  := -Iinclude -MMD -MP $(PKG_CFLAGS)
+BASE_CXX  := -std=c++17 -Wall -Wextra -Wfatal-errors -fmax-errors=1 -pthread
+LDFLAGS   := $(PKG_LIB_L)
+BASE_LIBS := $(PKG_LIB_l) -pthread -lconfig++ -lcurl
+
+# ---------------------------------------------------------------------------
+# Build-type-specific flags
+# ---------------------------------------------------------------------------
+ifeq ($(BUILD),debug)
+    # Symbols + frame pointers for perf/valgrind/gdb
+    CXXFLAGS := $(BASE_CXX) -O2 -g -fno-omit-frame-pointer
+    LDLIBS   := $(BASE_LIBS)
+else
+    # Old “fast” flags
+    CXXFLAGS := $(BASE_CXX) -Ofast -march=native -mcpu=native -mtune=native
+    LDLIBS   := $(BASE_LIBS)
+endif
+
+# ---------------------------------------------------------------------------
+# File lists
+# ---------------------------------------------------------------------------
+SOURCES  := $(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS  := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
+DEPENDS  := $(OBJECTS:.o=.d)
+NPROC    := $(shell nproc)
+
+# ---------------------------------------------------------------------------
+# Targets
+# ---------------------------------------------------------------------------
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
@@ -27,11 +60,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 -include $(DEPENDS)
 
 clean:
-	rm -rf $(OBJ_DIR) 
-
-.PHONY: all clean
-
-.PHONY: parallel
+	rm -rf $(OBJ_DIR) $(TARGET)
 
 parallel:
-	$(MAKE) -j$(NPROC)
+	$(MAKE) -j$(NPROC) BUILD=$(BUILD)
+
+.PHONY: all clean parallel

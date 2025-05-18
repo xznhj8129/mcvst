@@ -129,7 +129,7 @@ void DisplayInterface::draw_track(cv::Mat& frame) {
         int sizescale = 4;
         int scalew = track_intf.framesize.width/sizescale;
         int scaleh = track_intf.framesize.height/sizescale;
-        cv::drawMarker(zoomed_frame, marker_pos, oscdolor, cv::MARKER_CROSS, scalew, linesize);
+        cv::drawMarker(frame, scaledpoi, osdcolor, cv::MARKER_CROSS, scalew, linesize);
         /*
         int x1 = scaledpoi.x;
         int y1 = scaledpoi.y - (track_intf.boxsize/2) - (scalew / sizescale);

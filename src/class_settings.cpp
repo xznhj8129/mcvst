@@ -42,12 +42,12 @@ void SettingsClass::Init(int argc, char** argv) {
             std::string line;
             try {
                 line = "debugprint";       debug_print = config.lookup(line);
-                line = "socketport";       socketport = config.lookup(line);
                 line = "movestep";         movestep = config.lookup(line);
 
                 line = "input";            intype = config.lookup(line).c_str();
                 line = "inputpath";        
                 if (intype != "socket" && intype !="test") {inputPath = config.lookup(line).c_str();}
+                line = "inputport";        inputPort = config.lookup(line);
 
                 line = "trackingfps";      trackingFPS = config.lookup(line);
                 line = "searchfps";        searchFPS = config.lookup(line);
@@ -100,6 +100,7 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "output";              outtype = config.lookup(line).c_str();
                 line = "outputpath";
                 if (outtype != "socket" && outtype!="none") {outputPath = config.lookup(line).c_str();}
+                line = "outputport";             outputPort = config.lookup(line);
 
                 line = "search";                 searchtype = config.lookup(line).c_str();
                 line = "dnn_model";              search_dnn_model = config.lookup(line).c_str();
@@ -141,169 +142,7 @@ void SettingsClass::Init(int argc, char** argv) {
         //
         // No config file: parse other command-line arguments to fill in the blanks
         //
-        else {std::cout << "Use the config file" << std::endl;}/*
-            if (arg.find("--input=") == 0) {
-                intype = arg.substr(8);
-            }
-            else if (arg.find("--inputpath=") == 0) {
-                inputPath = arg.substr(12);
-            }
-            else if (arg.find("--capture=") == 0) {
-                captype = arg.substr(10);
-            }
-            else if (arg.find("--capturepath=") == 0) {
-                capturePath = arg.substr(14);
-            }
-            else if (arg.find("--capformat=") == 0) {
-                capFormat = arg.substr(12);
-            }
-            else if (arg.find("--capfps=") == 0) {
-                capFPS = stoi(arg.substr(9));
-            }
-            else if (arg.find("--capsize=") == 0) {
-                std::istringstream iss(arg.substr(10));
-                int width, height;
-                char delimiter;
-                if (!(iss >> width >> delimiter >> height) || delimiter != 'x') {
-                    throw std::runtime_error("Invalid size format");
-                }
-                capSize = cv::Size(width, height);
-            }
-            else if (arg.find("--capwb=") == 0) {
-                capWB = stoi(arg.substr(7));
-            }
-            else if (arg.find("--capbr=") == 0) {
-                capBrightness = stoi(arg.substr(7));
-            }
-            else if (arg.find("--capcontrast=") == 0) {
-                capContrast = stoi(arg.substr(13));
-            }
-            else if (arg.find("--capsat=") == 0) {
-                capSat = stoi(arg.substr(9));
-            }
-            else if (arg.find("--showfps") == 0) {
-                showFPS = true;
-            }
-            else if (arg.find("--osdcolor=") == 0) {
-                color = arg.substr(10);
-            }
-            else if (arg.find("--osdlinesize=") == 0) {
-                osdLinesize = stoi(arg.substr(13));
-            }
-            else if (arg.find("--display=") == 0) {
-                dtype = arg.substr(10);
-            }
-            else if (arg.find("--displayfps=") == 0) {
-                displayFPS = stoi(arg.substr(12));
-            }
-            else if (arg.find("--scale=") == 0) {
-                processScale = stod(arg.substr(8));
-            }
-            else if (arg.find("--tracker=") == 0) {
-                tracktype = arg.substr(10);
-            }
-            else if (arg.find("--markertype=") == 0) {
-                markertype = arg.substr(13);
-            }
-            else if (arg.find("--pipper") == 0) {
-                showPipper = true;
-            }
-            else if (arg.find("--record") == 0) {
-                record_output = true;
-            }
-            else if (arg.find("--recordpath=") == 0) {
-                recordPath = arg.substr(12);
-            }
-            else if (arg.find("--use_cuda") == 0) {
-                use_cuda = true;
-            }
-            else if (arg.find("--use_eis") == 0) {
-                use_eis = true;
-            }
-            else if (arg.find("--output=") == 0) {
-                outtype = arg.substr(9);
-            }
-            else if (arg.find("--outputpath=") == 0) {
-                if (outtype == "socket") {
-                    socketport = stoi(arg.substr(13));
-                } else {
-                    outputPath = arg.substr(12);
-                }
-            }
-            else if (arg.find("--search=") == 0) {
-                searchtype = arg.substr(9);
-            }
-            else if (arg.find("--trackingfps=") == 0) {
-                trackingFPS = stoi(arg.substr(14));
-            }
-            else if (arg.find("--searchfps=") == 0) {
-                searchFPS = stoi(arg.substr(12));
-            }
-            else if (arg.find("--default_trackbox_size=") == 0) {
-                init_boxsize = stoi(arg.substr(23));
-            }
-            else if (arg.find("--oftpoints=") == 0) {
-                oftpoints = stoi(arg.substr(11));
-            }
-            else if (arg.find("--oftfeatures=") == 0) {
-                oftfeatures = stoi(arg.substr(13));
-            }
-            else if (arg.find("--dnn_model=") == 0) {
-                search_dnn_model = arg.substr(11);
-            }
-            else if (arg.find("--dnn_model_classes=") == 0) {
-                search_dnn_model_classes = arg.substr(19);
-            }
-            else if (arg.find("--dnn_model_dim=") == 0) {
-                search_dnn_model_dim = stoi(arg.substr(16));
-            }
-            else if (arg.find("--yolo_input_width=") == 0) {
-                search_yolo_width = stoi(arg.substr(19));
-            }
-            else if (arg.find("--yolo_input_height=") == 0) {
-                search_yolo_height = stoi(arg.substr(20));
-            }
-            else if (arg.find("--rows=") == 0) {
-                search_dnn_model_rows = stoi(arg.substr(7));
-            }
-            else if (arg.find("--target_class=") == 0) {
-                search_target_class = stoi(arg.substr(14));
-            }
-            else if (arg.find("--target_conf=") == 0) {
-                search_target_conf = stod(arg.substr(13));
-            }
-            else if (arg.find("--auto_lock") == 0) {
-                search_auto_lock = true;
-            }
-            else if (arg.find("--score_threshold=") == 0) {
-                search_score_threshold = stod(arg.substr(17));
-            }
-            else if (arg.find("--nms_threshold=") == 0) {
-                search_nms_threshold = stod(arg.substr(15));
-            }
-            else if (arg.find("--confidence_threshold=") == 0) {
-                search_confidence_threshold = stod(arg.substr(22));
-            }
-            else if (arg.find("--search_limit_zone=") == 0) {
-                search_limit_zone = stoi(arg.substr(19));
-            }
-            else if (arg.find("--search_zone=") == 0) {
-                // Example format: "0,0,640,480"
-                std::istringstream iss(arg.substr(13));
-                int z0, z1, z2, z3;
-                char delim;
-                if (!(iss >> z0 >> delim >> z1 >> delim >> z2 >> delim >> z3)) {
-                    std::cerr << "Invalid --search_zone= format. Expected 4 integers separated by commas.\n";
-                    exit(EXIT_FAILURE);
-                }
-                search_zone[0] = z0; search_zone[1] = z1;
-                search_zone[2] = z2; search_zone[3] = z3;
-            }
-            else {
-                std::cerr << "Unknown or incomplete argument: " << arg << std::endl;
-                exit(1);
-            }
-        }*/
+        else {std::cout << "Use the config file" << std::endl;}
     }
 
     // Check for missing capture path
@@ -376,11 +215,13 @@ void SettingsClass::Init(int argc, char** argv) {
     if (searchFPS == 0)        { searchFPS = 30; }
     if (displayFPS == 0)       { displayFPS = 60; }
 
-    // Basic consistency checks (example—add your own as needed)
     if ((searchType == 1) && (search_dnn_model.empty())) {
         std::cerr << "Warning: YOLO search requested but no dnn_model set.\n";
     }
-    if ((outputType == 2) && (socketport == 0)) {
+    if ((inputType == 2) && (inputPort == 0)) {
+        std::cerr << "Warning: Output set to socket but no socket port specified.\n";
+    }
+    if ((outputType == 2) && (outputPort == 0)) {
         std::cerr << "Warning: Output set to socket but no socket port specified.\n";
     }
 }

@@ -38,5 +38,7 @@ int main(int argc, char** argv) {
     inputThread.join();
     outputThread.join();
     
+    search_intf.shutdown();
+    cv::cuda::resetDevice();
     return 0;
 }

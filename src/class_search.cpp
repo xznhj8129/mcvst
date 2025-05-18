@@ -32,6 +32,14 @@ void SearchInterface::Init() {
         std::vector<std::string> class_list = search_intf.load_class_list();
         setup = true;
     }
+
+    cv::Rect search_zone;
+    if (settings.search_limit_zone) {
+        search_zone.x = procSize.width * settings.search_zone[0];
+        search_zone.y = procSize.height * settings.search_zone[1];
+        search_zone.width = procSize.width * settings.search_zone[2];
+        search_zone.height = procSize.height * settings.search_zone[3];
+    }
 };
 
 //bool SearchInterface::InitYOLO(bool cuda, std::string net, std::string classfile) {};
@@ -109,4 +117,6 @@ void SearchInterface::detect(cv::Mat &image, SearchResults &output) {
     }
 }
 
-
+void SearchInterface::shutdown() {
+    net = cv::dnn::Net{};
+}

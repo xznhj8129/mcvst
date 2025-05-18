@@ -133,11 +133,10 @@ int input_thread(SharedData& sharedData) {
             global_running.store(false);
             return 1;
         }
-        int myport = settings.socketport + 1;
         struct sockaddr_in serverAddr;
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_addr.s_addr = INADDR_ANY;
-        serverAddr.sin_port = htons(myport);
+        serverAddr.sin_port = htons(settings.inputPort);
 
         if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
             std::cerr << "Error: Unable to bind server socket" << std::endl;
@@ -155,7 +154,7 @@ int input_thread(SharedData& sharedData) {
             return 1;
         }
 
-        std::cout << "Input server listening on port " << myport << std::endl;
+        std::cout << "Input server listening on port " << settings.inputPort << std::endl;
 
         while (global_running) {
             fd_set readSet;
@@ -219,14 +218,14 @@ int input_thread(SharedData& sharedData) {
 
     else if (settings.inputType==2) //serial
     {
-
+        // to implement
     }
     else if (settings.inputType==3) //fifo
     {
         int last_btn1 = 0;
         while (global_running) {
             try {
-                TrackInputs inputs = read_from_fifo(settings.inputPath); // use settings.inputPath
+                TrackInputs inputs = read_from_fifo(settings.inputPath); 
                 if (inputs.valid) {
                     input_intf.input_vec(inputs, last_btn1);
                     last_btn1 = inputs.lock;

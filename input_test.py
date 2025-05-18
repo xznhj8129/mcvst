@@ -79,7 +79,7 @@ run = True
 connected = False
 while run:
     try:
-        server_address = ('192.168.0.46', 8101)  # Adjust port number as needed
+        server_address = ('localhost', 8101)  # Adjust port number as needed
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serv:
             serv.settimeout(5)
             serv.connect(server_address)

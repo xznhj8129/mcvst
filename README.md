@@ -60,6 +60,7 @@ Use cfg file: ./tracker --config=settings.cfg\
 
 ### Search types:
 * YOLOv5
+* YOLOv9
 
 ### OpenCV Window
 Click: Lock\
@@ -122,7 +123,7 @@ This is the epsilon value, representing the desired accuracy. It’s a small num
 - Input: serial
 - Output: serial
 - Tracker: mosse, canny, etc (or not)
-- Search: differentiate yolov5, yolov8; CUDA; more algorithms
+- Search: differentiate yolov5, yolov8; CUDA; OpenCL; more algorithms
 - return command line arguments
 
 ## Bugs TODO:

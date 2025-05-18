@@ -26,6 +26,7 @@ class SearchInterface {
         bool setup;
         std::vector<SearchDetection> output;
         float search_fps;
+        cv::Rect search_zone;
 
         SearchInterface();
         void Init();
@@ -34,6 +35,7 @@ class SearchInterface {
         void load_net(cv::dnn::Net &net, bool is_cuda);
         cv::Mat format_yolov5(const cv::Mat &source);
         void detect(cv::Mat &image, SearchResults &output);
+        void shutdown();
 
 };
 extern SearchInterface search_intf;

@@ -54,7 +54,7 @@ void onMouse(int event, int x, int y, int, void*) {
 int display_thread(SharedData& sharedData) {
     bool finish_error = false;
     std::chrono::milliseconds frameDuration(1000 / settings.displayFPS);
-    cv::Mat frame;
+    static cv::Mat displayBuf;
     int frame_count = 0;
     int fc = 0;
     int total_frames = 0;
@@ -155,33 +155,46 @@ int display_thread(SharedData& sharedData) {
         finish_error = true;
     }
 
+    cv::Rect searchbox;
+    if (settings.search_limit_zone) {
+        int x = int(cap_intf.frameSize.width  * settings.search_zone[0]);
+        int y = int(cap_intf.frameSize.height * settings.search_zone[1]);
+        int w = int(cap_intf.frameSize.width  * (settings.search_zone[2] - settings.search_zone[0]));
+        int h = int(cap_intf.frameSize.height * (settings.search_zone[3] - settings.search_zone[1]));
+        searchbox = cv::Rect{x,y,w,h};
+    }
+
     auto start = std::chrono::high_resolution_clock::now();
     while (global_running and !finish_error) {
         auto startTime = std::chrono::steady_clock::now();
-        frame = sharedData.displayFrame.clone();
+        cv::Mat& displayBuf = sharedData.displayFrame;
         frame_count++;
         total_frames++;
 
-        if (frame.empty()) {
+        if (displayBuf.empty()) {
             fc++;
-            if (settings.debug_print) {std::cout << "empty frame " << fc << std::endl;}
+            if (settings.debug_print) {std::cout << "empty displayBuf " << fc << std::endl;}
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
 
             for (const auto& point : track_intf.roiPoints()) {
-                cv::circle(frame, point, 2, display_intf.osdcolor, -1);}
+                cv::circle(displayBuf, point, 2, display_intf.osdcolor, -1);}
             /*for (const auto& point : track_intf.bad_points) {
-                cv::circle(frame, point, 2, display_intf.osdcolor, -1);}
-            cv::rectangle(frame, track_intf.roi, display_intf.osdcolor, display_intf.linesize);*/
+                cv::circle(displayBuf, point, 2, display_intf.osdcolor, -1);}
+            cv::rectangle(displayBuf, track_intf.roi, display_intf.osdcolor, display_intf.linesize);*/
 
             if (track_intf.locked) {
-                display_intf.draw_track(frame);
+                display_intf.draw_track(displayBuf);
             } else if (settings.showPipper) {
-                display_intf.draw_cornerbox(frame, cv::Point(track_intf.poi.x, track_intf.poi.y), track_intf.boxsize);
+                display_intf.draw_cornerbox(displayBuf, cv::Point(track_intf.poi.x, track_intf.poi.y), track_intf.boxsize);
             }
 
             if (settings.searchType>0) {
                 int detections = search_intf.output.size();
+
+                if (settings.search_limit_zone) {
+                    cv::rectangle(displayBuf, searchbox, display_intf.osdcolor, display_intf.linesize);
+                }
 
                 for (int i = 0; i < detections; ++i) {
                     auto detection = search_intf.output[i];
@@ -194,13 +207,13 @@ int display_thread(SharedData& sharedData) {
 
                     std::string label = classStr + " " + trimmed_confidence;
                     if (detection.confidence >= settings.search_target_conf) {
-                        cv::rectangle(frame, box, display_intf.osdcolor, display_intf.linesize);
+                        cv::rectangle(displayBuf, box, display_intf.osdcolor, display_intf.linesize);
                     }
                     else {
-                        display_intf.draw_cornerrect(frame, box);
+                        display_intf.draw_cornerrect(displayBuf, box);
                     }
                     
-                    cv::putText(frame, label, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, display_intf.osdcolor);
+                    cv::putText(displayBuf, label, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, display_intf.osdcolor);
                     //std::cout << classStr << " " << classId << " " << detection.confidence << " " << box.x+(box.width/2) << " "<< box.y+(box.height/2) << std::endl;
                 }                
             }
@@ -216,17 +229,18 @@ int display_thread(SharedData& sharedData) {
                     std::ostringstream fps_label;
                     fps_label << std::fixed << std::setprecision(2);
                     fps_label << "FPS: " << fps;
-                    cv::putText(frame, fps_label.str(), cv::Point(10, 25), cv::FONT_HERSHEY_SIMPLEX, 1, display_intf.osdcolor, 2);
+                    cv::putText(displayBuf, fps_label.str(), cv::Point(10, 25), cv::FONT_HERSHEY_SIMPLEX, 1, display_intf.osdcolor, 2);
                 }
             }
 
             // display
-            if (frame.cols != settings.displaySize.width) {
-                cv::resize(frame, frame, settings.displaySize, 0, 0, cv::INTER_AREA);
+            if (displayBuf.cols != settings.displaySize.width) {
+                cv::resize(displayBuf, displayBuf,
+                        settings.displaySize, 0, 0, cv::INTER_AREA);
             }
 
             if (settings.displayType == 1) { //opencv keyboard input
-                cv::imshow("Tracking", frame);
+                cv::imshow("Tracking", displayBuf);
                 int keyCode = cv::waitKey(1) & 0xFF;
                 if (keyCode!=255){
                     //std::cout << "KEY:" << keyCode << std::endl;
@@ -267,18 +281,18 @@ int display_thread(SharedData& sharedData) {
                 if (keyCode == 27) {break;} // Exit if ESC pressed
 
             } else if (settings.displayType == 2) {
-                display_intf.writeImageToFramebuffer(frame);
+                display_intf.writeImageToFramebuffer(displayBuf);
 
             } else if ((settings.displayType == 3 || settings.displayType == 4 || settings.displayType == 5) && gst_pipeline_ready) {
-                // Push the frame into the GStreamer pipeline via appsrc
+                // Push the displayBuf into the GStreamer pipeline via appsrc
                 // Convert cv::Mat (BGR) to GstBuffer
                 GstBuffer *buffer;
                 GstMapInfo map;
-                size_t size = frame.total() * frame.elemSize();
+                size_t size = displayBuf.total() * displayBuf.elemSize();
 
                 buffer = gst_buffer_new_allocate(nullptr, size, nullptr);
                 gst_buffer_map(buffer, &map, GST_MAP_WRITE);
-                memcpy(map.data, frame.data, size);
+                memcpy(map.data, displayBuf.data, size);
                 gst_buffer_unmap(buffer, &map);
 
                 // Set timestamp to maintain a proper flow in pipeline

@@ -16,13 +16,14 @@ class SettingsClass {
         cv::Size displaySize;
         int inputType;
         std::string inputPath;
+        int inputPort;
         double processScale;
         int displayType;
         std::string displayPath;
         int searchType;
         int outputType;
         std::string outputPath;
-        int socketport;
+        int outputPort;
         bool use_cuda;
         bool use_eis;
         bool record_output;
