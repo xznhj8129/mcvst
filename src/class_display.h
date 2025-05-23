@@ -9,6 +9,7 @@
 #include "globals.h"
 #include "class_track.h"
 #include "class_settings.h"
+#include "class_search.h"
 
 class DisplayInterface {
 
@@ -28,7 +29,7 @@ class DisplayInterface {
         // move this somewhere else
         void draw_track(cv::Mat& frame);
         void draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize, std::string text);
-        void draw_search_detections(cv::Mat& frame, SearchResults results);
+        void draw_search_detections(cv::Mat& frame);
         void draw_cornerbox(cv::Mat& frame, cv::Point poi, int boxsize);
         void draw_cornerrect(cv::Mat& frame, const cv::Rect& roi);
 

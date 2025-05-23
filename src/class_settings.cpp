@@ -90,6 +90,7 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "oft_trackfeatures";   oftfeatures = config.lookup(line);
                 line = "epsilon";           epsilon = config.lookup(line);
                 line = "maxits";            maxits = config.lookup(line);
+                line = "blur_size";           blur_size = config.lookup(line);
                 line = "markertype";          markertype = config.lookup(line).c_str();
                 line = "pipper";              showPipper = config.lookup(line);
                 line = "record";              record_output = config.lookup(line);
@@ -177,6 +178,10 @@ void SettingsClass::Init(int argc, char** argv) {
     else if (tracktype == "csrt")             { trackerType = 3; }
     else if (tracktype == "mosse")            { trackerType = 4; }
     else if (tracktype == "denseoft")         { trackerType = 6; }
+    if (trackerType>1) { //disable others for now
+        trackerType = 1;
+        std::cout << "Trackers other than OFT not implemented yet, reverting" << std::endl;
+    }
 
     if (intype == "" || intype == "none")          { inputType = 0; }
     else if (intype == "socket")  { inputType = 1; }

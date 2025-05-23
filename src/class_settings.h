@@ -31,6 +31,7 @@ class SettingsClass {
 
         int trackerType;
         int trackMarker;
+        int blur_size;
         int init_boxsize;
         int oftpoints;
         bool oftfeatures;

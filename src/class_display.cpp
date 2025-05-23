@@ -128,7 +128,7 @@ void DisplayInterface::draw_track(cv::Mat& frame) {
     if (settings.trackMarker == 2) { //crosshair
         int sizescale = 4;
         int scalew = track_intf.framesize.width/sizescale;
-        int scaleh = track_intf.framesize.height/sizescale;
+        //int scaleh = track_intf.framesize.height/sizescale;
         cv::drawMarker(frame, scaledpoi, osdcolor, cv::MARKER_CROSS, scalew, linesize);
         /*
         int x1 = scaledpoi.x;
@@ -169,8 +169,29 @@ void DisplayInterface::draw_externbox(cv::Mat& frame, cv::Point poi, int boxsize
     cv::putText(frame, text, cv::Point(boxroi.x, boxroi.y + boxsize), cv::FONT_HERSHEY_SIMPLEX, 1, osdcolor, linesize);
 }
 
-void DisplayInterface::draw_search_detections(cv::Mat& frame, SearchResults results) {
+void DisplayInterface::draw_search_detections(cv::Mat& frame) {
+    int detections = search_intf.output.size();
 
+    for (int i = 0; i < detections; ++i) {
+        auto detection = search_intf.output[i];
+        auto box = detection.box;
+        auto classId = detection.class_id;
+        std::string classStr = search_intf.class_list[classId].c_str();
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << detection.confidence;
+        std::string trimmed_confidence = oss.str();
+
+        std::string label = classStr + " " + trimmed_confidence;
+        if (detection.confidence >= settings.search_target_conf) {
+            cv::rectangle(frame, box, display_intf.osdcolor, display_intf.linesize);
+        }
+        else {
+            display_intf.draw_cornerrect(frame, box);
+        }
+        
+        cv::putText(frame, label, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, display_intf.osdcolor);
+        //std::cout << classStr << " " << classId << " " << detection.confidence << " " << box.x+(box.width/2) << " "<< box.y+(box.height/2) << std::endl;
+    }       
 
 }
 

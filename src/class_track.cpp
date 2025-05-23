@@ -113,21 +113,24 @@ void TrackInterface::smallerBox() {
 
 std::vector<cv::Point2f> TrackInterface::roiPoints() {
     float offset = getPointsOffset();
-    cv::Point2f c1 = cv::Point2f(poi.x - offset, poi.y - offset); 
-    cv::Point2f c2 = cv::Point2f(poi.x + offset, poi.y - offset); 
-    cv::Point2f c3 = cv::Point2f(poi.x - offset, poi.y + offset); 
-    cv::Point2f c4 = cv::Point2f(poi.x + offset, poi.y + offset); 
-    cv::Point2f c5 = cv::Point2f(poi.x , poi.y - offset); 
-    cv::Point2f c6 = cv::Point2f(poi.x , poi.y + offset); 
-    cv::Point2f c7 = cv::Point2f(poi.x - offset, poi.y ); 
-    cv::Point2f c8 = cv::Point2f(poi.x + offset, poi.y ); 
     if (settings.oftpoints<=1) { return { poi }; }
-    else if (settings.oftpoints == 5) { return { poi, c5, c6, c7, c8 }; }
-    else if (settings.oftpoints == 9) { return { poi, c1, c2, c3, c4, c5, c6, c7, c8 }; }
+    else {
+        cv::Point2f c1 = cv::Point2f(poi.x - offset, poi.y - offset); 
+        cv::Point2f c2 = cv::Point2f(poi.x + offset, poi.y - offset); 
+        cv::Point2f c3 = cv::Point2f(poi.x - offset, poi.y + offset); 
+        cv::Point2f c4 = cv::Point2f(poi.x + offset, poi.y + offset); 
+        cv::Point2f c5 = cv::Point2f(poi.x , poi.y - offset); 
+        cv::Point2f c6 = cv::Point2f(poi.x , poi.y + offset); 
+        cv::Point2f c7 = cv::Point2f(poi.x - offset, poi.y ); 
+        cv::Point2f c8 = cv::Point2f(poi.x + offset, poi.y ); 
+        if (settings.oftpoints == 4) { return { c1, c2, c3, c4 }; }
+        else if (settings.oftpoints == 5) { return { poi, c5, c6, c7, c8 }; }
+        else if (settings.oftpoints == 9) { return { poi, c1, c2, c3, c4, c5, c6, c7, c8 }; }
+    }
 }
 
 float TrackInterface::getPointsOffset() {
-    return std::round(boxsize / 10.0f);
+    return std::round(boxsize / 10.0f); // 2.0f
 }
 
 void TrackInterface::defineRoi(cv::Point2f newpoi) {

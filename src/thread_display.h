@@ -190,32 +190,10 @@ int display_thread(SharedData& sharedData) {
             }
 
             if (settings.searchType>0) {
-                int detections = search_intf.output.size();
-
                 if (settings.search_limit_zone) {
                     cv::rectangle(frame, searchbox, display_intf.osdcolor, display_intf.linesize);
                 }
-
-                for (int i = 0; i < detections; ++i) {
-                    auto detection = search_intf.output[i];
-                    auto box = detection.box;
-                    auto classId = detection.class_id;
-                    std::string classStr = search_intf.class_list[classId].c_str();
-                    std::ostringstream oss;
-                    oss << std::fixed << std::setprecision(2) << detection.confidence;
-                    std::string trimmed_confidence = oss.str();
-
-                    std::string label = classStr + " " + trimmed_confidence;
-                    if (detection.confidence >= settings.search_target_conf) {
-                        cv::rectangle(frame, box, display_intf.osdcolor, display_intf.linesize);
-                    }
-                    else {
-                        display_intf.draw_cornerrect(frame, box);
-                    }
-                    
-                    cv::putText(frame, label, cv::Point(box.x, box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, display_intf.osdcolor);
-                    //std::cout << classStr << " " << classId << " " << detection.confidence << " " << box.x+(box.width/2) << " "<< box.y+(box.height/2) << std::endl;
-                }                
+                display_intf.draw_search_detections(frame);
             }
 
             if (settings.showFPS) {

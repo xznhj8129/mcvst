@@ -1,0 +1,262 @@
+        else if (settings.trackerType >= 1) { // OFT (only this for now)
+            cv::Mat frame_gray;
+            cv::cvtColor(processframe, frame_gray, cv::COLOR_BGR2GRAY);
+
+            /*cv::Mat mask = cv::Mat::zeros(frame_gray.size(), CV_8UC1);
+            mask(track_intf.roi) = 255;
+            // 	image, maxCorners, qualityLevel, minDistance, mask, blockSize, gradientSize[, corners[, useHarrisDetector[, k]]]
+            cv::goodFeaturesToTrack(frame_gray, track_intf.oftdata.old_points, 
+                100, //maxcorners
+                0.2, //qualitylevel
+                7,   //mindistance
+                mask
+            ); // <configurable> oft variables
+            */
+            
+            //std::cout << track_intf.track << " " << track_intf.locking << " " << track_intf.locked << std::endl;
+            if (track_intf.track) {    
+                cv::Mat frame_gray;
+                cv::cvtColor(processframe, frame_gray, cv::COLOR_BGR2GRAY);
+                if (settings.blur_size > 0) {
+                    cv::GaussianBlur(frame_gray, frame_gray, cv::Size(blur_size, blur_size), 0);
+                }
+
+                // If old_points is empty (e.g., first frame), initialize with points around POI
+                if (track_intf.oftdata.old_points.empty()) {
+                    track_intf.oftdata.old_points = track_intf.roiPoints(); 
+                }
+
+                std::vector<cv::Point2f> new_points;
+                std::vector<uchar> status;
+                std::vector<float> errors;
+
+                cv::calcOpticalFlowPyrLK(
+                    frame_gray_init, 
+                    frame_gray, 
+                    track_intf.oftdata.old_points, 
+                    new_points, 
+                    status, 
+                    errors, 
+                    cv::Size(track_intf.oft_winsize, track_intf.oft_winsize), //15
+                    track_intf.oft_pyrlevels,                // Pyramid levels 2
+                    termcrit          // Predefined: (COUNT | EPS, 10, 0.03)
+                );
+
+                // Filter valid points within ROI
+                std::vector<cv::Point2f> valid_points;
+                for (size_t i = 0; i < new_points.size(); ++i) {
+                    if (status[i] && track_intf.isPointInROI(new_points[i], track_intf.point_tolerance)) {
+                        valid_points.push_back(new_points[i]);
+                    }
+                }
+
+                if (valid_points.size() > 0) {
+                    // Calculate median of valid points for new POI
+                    std::sort(valid_points.begin(), valid_points.end(), 
+                            [](const cv::Point2f& a, const cv::Point2f& b) { return a.x < b.x; });
+                    float medianX = valid_points[valid_points.size() / 2].x;
+                    std::sort(valid_points.begin(), valid_points.end(), 
+                            [](const cv::Point2f& a, const cv::Point2f& b) { return a.y < b.y; });
+                    float medianY = valid_points[valid_points.size() / 2].y;
+                    cv::Point2f new_poi(medianX, medianY);
+
+                    // Update POI and ROI
+                    track_intf.poi = cv::Point(static_cast<int>(new_poi.x), static_cast<int>(new_poi.y)); // Convert back to cv::Point
+                    track_intf.defineRoi(new_poi);
+                    track_intf.oftdata.old_points = valid_points; // Update for next iteration
+                    track_intf.locked = true;
+                    track_intf.locking = false;
+                    track_lost_counter = 0;
+
+                } else {
+                    track_lost_counter++;
+                    if (settings.debug_print) {
+                        std::cout << "Single-point OFT lost track: no valid points " << track_lost_counter << std::endl;
+                    }
+
+                    if (settings.inputType==4){
+                        track_intf.breaklock(); //immediately end if track breaks in testing
+                    } else if (max_lost_search> -1 && (track_lost_counter >= max_lost_search)) {
+                        track_intf.breaklock();
+                        std::cout << "OFT lost track after " << max_lost_search << " frames" << std::endl;
+                        track_lost_counter = 0;
+                    } else {
+                        new_points.clear();
+                        new_points.push_back(track_intf.poi);
+                    }
+                }
+                if (!track_intf.track) { track_intf.locked = false;}
+                frame_gray_init = frame_gray.clone();
+            }
+            else { }
+        }
+        
+        else if (settings.trackerType == 2 || settings.trackerType == 3) {
+
+            // 2) Preprocess: blur to reduce noise (use color for both KCF and CSRT)
+            cv::Mat trackFrame;
+            cv::GaussianBlur(processframe, trackFrame, cv::Size(5, 5), 0);
+
+            // 3) Prepare a clamping rectangle to keep ROIs within frame bounds
+            cv::Rect frameRect(0, 0, trackFrame.cols, trackFrame.rows);
+
+            // Initialize or reinitialize tracker if needed
+            if (track_intf.track &
+                ((!track_intf.locked && track_intf.first_lock) ||
+                (track_intf.locked && track_intf.lock_change)))
+            {
+                std::cout << "newlock" << std::endl;
+
+                if (settings.trackerType == 2) {
+                    cv::TrackerKCF::Params kcf_params;
+                    kcf_params.sigma           = 0.2f;
+                    kcf_params.lambda         = 0.01f;
+                    kcf_params.detect_thresh   = 0.6f;
+                    kcf_params.compressed_size = 2;
+                    kcf_params.max_patch_size  = 80;
+                    tracker = cv::TrackerKCF::create(kcf_params);
+                }
+                else { // CSRT
+                    cv::TrackerCSRT::Params csrt_params;
+                    csrt_params.use_hog         = true;
+                    csrt_params.use_color_names = true;
+                    csrt_params.use_gray        = false;
+                    csrt_params.padding         = 2.5f;
+                    csrt_params.template_size   = 150;
+                    csrt_params.psr_threshold   = 0.15f;
+                    tracker = cv::TrackerCSRT::create(csrt_params);
+                }
+
+                // Clamp initial ROI inside the frame
+                cv::Rect initBox = track_intf.roi & frameRect;
+                if (initBox.width > 0 && initBox.height > 0) {
+                    tracker->init(trackFrame, initBox);
+                    track_intf.roi         = initBox;
+                    track_intf.locked      = true;
+                    track_intf.locking     = false;
+                    track_intf.first_lock  = false;
+                    track_intf.lock_change = false;
+                }
+            }
+
+            // Perform tracking on the clamped, preprocessed frame
+            if (track_intf.locked &&
+                track_intf.roi.width  > 0 &&
+                track_intf.roi.height > 0)
+            {
+                track_intf.lastroi = track_intf.roi;
+                cv::Rect trackingBox = track_intf.roi & frameRect;
+                if (trackingBox.width > 0 && trackingBox.height > 0) {
+                    ok = tracker->update(trackFrame, trackingBox);
+                    if (ok) {
+                        track_intf.roi    = trackingBox;
+                        track_intf.poi.x  = track_intf.roi.x + track_intf.roi.width  / 2;
+                        track_intf.poi.y  = track_intf.roi.y + track_intf.roi.height / 2;
+                    } else {
+                        std::cout << "Lost track" << std::endl;
+                        track_intf.lost_lock = true;
+                        track_intf.locked    = false;
+                        track_intf.locking   = true;  // Request re-lock next frame
+                    }
+                } else {
+                    std::cout << "Invalid ROI after clamping" << std::endl;
+                    track_intf.lost_lock = true;
+                    track_intf.locked    = false;
+                    track_intf.locking   = true;
+                }
+            }
+        }
+
+
+        else if (settings.trackerType == 6) { // dense optical flow using ROI
+            cv::Mat curGray;
+            cv::cvtColor(processframe, curGray, cv::COLOR_BGR2GRAY);
+            if (prevGray.empty()) {
+                prevGray = curGray.clone();
+            }
+
+            // Ensure the ROI is within image bounds.
+            cv::Rect roiRect = track_intf.roi & cv::Rect(0, 0, curGray.cols, curGray.rows);
+            if (roiRect.width <= 0 || roiRect.height <= 0) {
+                std::cerr << "Invalid ROI\n";
+                prevGray = curGray.clone();
+                break; // or continue, depending on your logic
+            }
+
+            // Create a mask that highlights the ROI.
+            cv::Mat mask = cv::Mat::zeros(curGray.size(), CV_8UC1);
+            mask(roiRect) = 255;
+
+            // Compute dense optical flow over the full image.
+            cv::Mat flow;
+            cv::calcOpticalFlowFarneback(
+                prevGray,
+                curGray,
+                flow,
+                fbParams.pyrScale,
+                fbParams.levels,
+                fbParams.winSize,
+                fbParams.iterations,
+                fbParams.polyN,
+                fbParams.polySigma,
+                fbParams.flags
+            );
+
+            // Collect point matches only from inside the ROI.
+            std::vector<cv::Point2f> srcPts;
+            std::vector<cv::Point2f> dstPts;
+            const int step = 8; // sampling stride
+            for (int y = roiRect.y; y < roiRect.y + roiRect.height; y += step) {
+                for (int x = roiRect.x; x < roiRect.x + roiRect.width; x += step) {
+                    cv::Vec2f vec = flow.at<cv::Vec2f>(y, x);
+                    float flowX = vec[0];
+                    float flowY = vec[1];
+                    cv::Point2f srcPt(static_cast<float>(x), static_cast<float>(y));
+                    cv::Point2f dstPt = srcPt + cv::Point2f(flowX, flowY);
+                    srcPts.push_back(srcPt);
+                    dstPts.push_back(dstPt);
+                }
+            }
+
+            if (srcPts.size() < 10) {
+                std::cerr << "Not enough flow points in ROI to estimate motion!\n";
+                // You might choose to mark a failure to lock or simply update prevGray and try again.
+                prevGray = curGray.clone();
+            }
+            else {
+                // Estimate an affine transform from the matched points.
+                cv::Mat affine = cv::estimateAffinePartial2D(srcPts, dstPts);
+                if (affine.empty()) {
+                    std::cerr << "Failed to estimate global affine transform.\n";
+                }
+                else {
+                    // Decompose the affine to get rotation, scale, and translation.
+                    double rotationDeg = 0.0, scale = 1.0;
+                    cv::Point2f translation(0.f, 0.f);
+                    track_intf.decomposeAffine(affine, rotationDeg, scale, translation);
+
+                    // Update the tracked point using the affine transform.
+                    cv::Point2f trackedPoint = track_intf.poi;
+                    double a11 = affine.at<double>(0,0);
+                    double a12 = affine.at<double>(0,1);
+                    double a13 = affine.at<double>(0,2);
+                    double a21 = affine.at<double>(1,0);
+                    double a22 = affine.at<double>(1,1);
+                    double a23 = affine.at<double>(1,2);
+                    double newX = a11 * trackedPoint.x + a12 * trackedPoint.y + a13;
+                    double newY = a21 * trackedPoint.x + a22 * trackedPoint.y + a23;
+                    trackedPoint = cv::Point2f(static_cast<float>(newX), static_cast<float>(newY));
+
+                    std::cout << "Global Rotation (deg): " << rotationDeg << "\n";
+                    std::cout << "Global Scale:          " << scale       << "\n";
+                    std::cout << "Global Translation:    (" << translation.x << ", " << translation.y << ")\n";
+                    std::cout << "Updated Tracked Point: (" << trackedPoint.x << ", " << trackedPoint.y << ")\n";
+
+                    track_intf.poi = trackedPoint;
+                }
+            }
+            cv::imshow("denseFlow: curGray", curGray);
+            cv::imshow("denseFlow: ROI mask", mask);
+            prevGray = curGray.clone();
+        }
+
