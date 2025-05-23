@@ -16,6 +16,7 @@ void TrackInterface::Init(cv::Size cap_image_size, double scale) {
     movestep = settings.movestep;
     oft_pyrlevels = settings.oft_pyrlevels;
     oft_winsize = settings.oft_winsize;
+    fps = settings.trackingFPS;
     maxits = settings.maxits;
     epsilon = settings.maxits;
     track = false;
@@ -200,7 +201,9 @@ void TrackInterface::lock(const int x, const int y) {
 }
 
 void TrackInterface::breaklock() {
-    std::cout << "Break lock" << std::endl;
+    if (settings.debug_print) {
+        std::cout << "Break lock" << std::endl;
+    }
     track = false;
     locking = false;
     locked = false;
@@ -209,7 +212,9 @@ void TrackInterface::breaklock() {
 }
 
 void TrackInterface::clearlock() {
-    std::cout << "Clear lock" << std::endl;
+    if (settings.debug_print) {
+        std::cout << "Clear lock" << std::endl;
+    }
     poi = cv::Point(track_intf.framesize.width/2, track_intf.framesize.height/2);
     roi = cv::Rect(poi.x - (roi.width / 2), poi.y - (roi.height / 2), roi.width, roi.height);
     track = false;

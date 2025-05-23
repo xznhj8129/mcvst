@@ -88,11 +88,12 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "default_trackbox_size"; init_boxsize = config.lookup(line);
                 line = "oft_points";          oftpoints = config.lookup(line);
                 line = "oft_trackfeatures";   oftfeatures = config.lookup(line);
-                line = "epsilon";           epsilon = config.lookup(line);
-                line = "maxits";            maxits = config.lookup(line);
+                line = "epsilon";             epsilon = config.lookup(line);
+                line = "maxits";              maxits = config.lookup(line);
                 line = "blur_size";           blur_size = config.lookup(line);
                 line = "markertype";          markertype = config.lookup(line).c_str();
                 line = "pipper";              showPipper = config.lookup(line);
+                line = "drawpoints";          drawpoints = config.lookup(line);
                 line = "record";              record_output = config.lookup(line);
                 line = "recordpath";          recordPath = config.lookup(line).c_str();
                 line = "use_cuda";            use_cuda = config.lookup(line);
@@ -220,6 +221,8 @@ void SettingsClass::Init(int argc, char** argv) {
     if (searchFPS == 0)        { searchFPS = 30; }
     if (displayFPS == 0)       { displayFPS = 60; }
 
+    global_debug_print = debug_print;
+    // Warnings
     if ((searchType == 1) && (search_dnn_model.empty())) {
         std::cerr << "Warning: YOLO search requested but no dnn_model set.\n";
     }

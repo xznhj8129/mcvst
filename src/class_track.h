@@ -24,6 +24,7 @@ class TrackInterface {
         bool first_lock = true;
         bool lock_change = false;
         bool lost_lock = false;
+        int fps;
         float track_fps;
 
         Vec2D angle;

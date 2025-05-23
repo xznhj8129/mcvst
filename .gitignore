@@ -21,3 +21,6 @@ test.py
 .vscode/
 *.log
 mcvst.txt
+perf-report.txt
+perf.data
+*.data
