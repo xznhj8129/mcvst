@@ -37,6 +37,7 @@ class TrackInterface {
         double epsilon;
         double points_offset;
         double point_tolerance = 0.5f;
+        double track_srl = 10.0f;
 
         TrackInterface();
         void Init(cv::Size cap_image_size, const double scale);

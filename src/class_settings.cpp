@@ -94,6 +94,7 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "markertype";          markertype = config.lookup(line).c_str();
                 line = "pipper";              showPipper = config.lookup(line);
                 line = "drawpoints";          drawpoints = config.lookup(line);
+                line = "slew_rate_limit";     track_srl = config.lookup(line);
                 line = "record";              record_output = config.lookup(line);
                 line = "recordpath";          recordPath = config.lookup(line).c_str();
                 line = "use_cuda";            use_cuda = config.lookup(line);

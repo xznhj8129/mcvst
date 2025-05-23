@@ -111,7 +111,7 @@ int tracking_thread(SharedData& sharedData) {
 
         // Tracking algorithms below
         
-        if (settings.trackerType == 0 || cap_intf.no_feed) { // 
+        if (settings.trackerType == 0 || cap_intf.no_feed) { 
            passthrough = true;
         }
         else if (settings.trackerType >= 1) { // OFT (only this for now)
@@ -155,86 +155,93 @@ int tracking_thread(SharedData& sharedData) {
                 }
 
                 if (!valid_points.empty()) {
-            // keep a history of the last 0.25 s worth of shifts
-            static std::deque<double> step_hist;
-            int window = std::max(1, static_cast<int>(fps * 0.25 + 0.50));
-            
-            // compute median-based new POI as before
-            std::nth_element(valid_points.begin(),
-                            valid_points.begin() + valid_points.size()/2,
-                            valid_points.end(),
-                            [](auto&a,auto&b){ return a.x < b.x; });
-            float medianX = valid_points[valid_points.size()/2].x;
-            std::nth_element(valid_points.begin(),
-                            valid_points.begin() + valid_points.size()/2,
-                            valid_points.end(),
-                            [](auto&a,auto&b){ return a.y < b.y; });
-            float medianY = valid_points[valid_points.size()/2].y;
-            cv::Point2f new_poi(medianX, medianY);
+                    // keep a history of the last 0.25 s worth of shifts
+                    static std::deque<double> step_hist;
+                    int window = std::max(1, static_cast<int>(fps * 0.25 + 0.50));
+                    
+                    // compute median-based new POI as before
+                    std::nth_element(valid_points.begin(),
+                                    valid_points.begin() + valid_points.size()/2,
+                                    valid_points.end(),
+                                    [](auto&a,auto&b){ return a.x < b.x; });
+                    float medianX = valid_points[valid_points.size()/2].x;
+                    std::nth_element(valid_points.begin(),
+                                    valid_points.begin() + valid_points.size()/2,
+                                    valid_points.end(),
+                                    [](auto&a,auto&b){ return a.y < b.y; });
+                    float medianY = valid_points[valid_points.size()/2].y;
+                    cv::Point2f new_poi(medianX, medianY);
 
-            // compute this frame’s shift
-            cv::Point2f old_poi_f(
-                static_cast<float>(track_intf.poi.x),
-                static_cast<float>(track_intf.poi.y)
-            );
-            double shift_rate = cv::norm(new_poi - old_poi_f);
+                    // compute this frame’s shift
+                    cv::Point2f old_poi_f(
+                        static_cast<float>(track_intf.poi.x),
+                        static_cast<float>(track_intf.poi.y)
+                    );
+                    double shift_rate = cv::norm(new_poi - old_poi_f);
 
-            // push & trim history
-            step_hist.push_back(shift_rate);
-            while ((int)step_hist.size() > window)
-                step_hist.pop_front();
+                    double avg_step = std::accumulate(step_hist.begin(), step_hist.end(), 0.0)
+                                    / step_hist.size();
+                    // push & trim history
+                    if (avg_step==0 || shift_rate < (avg_step * track_intf.track_srl * 2)) { // discard anomalies
+                        step_hist.push_back(shift_rate);
+                    }
+                    else {
 
-            // dynamic threshold = average shift over last 0.25 s
-            double shift_mult = 3.0f;
-            double avg_step = std::accumulate(step_hist.begin(), step_hist.end(), 0.0)
-                            / step_hist.size();
+                            std::cout << "discard: " << shift_rate
+                                    << " > avg(" << window << ")=" << (avg_step * track_intf.track_srl * 2) << std::endl;
+                    }
+                    while ((int)step_hist.size() > window)
+                        step_hist.pop_front();
 
-            if (shift_rate > avg_step*shift_mult) {
-                if (settings.debug_print) {
-                    std::cout << "POI rate limiter: " << shift_rate
-                            << " > avg(" << window << ")=" << avg_step << std::endl;
+                    // dynamic threshold = average shift over last 0.25 s
+                    avg_step = std::accumulate(step_hist.begin(), step_hist.end(), 0.0)
+                                    / step_hist.size();
+
+                    if (shift_rate > avg_step*track_intf.track_srl) {
+                        if (settings.debug_print) {
+                            std::cout << "POI rate limiter: " << shift_rate
+                                    << " > avg(" << window << ")=" << avg_step*track_intf.track_srl << std::endl;
+                        }
+                        // glitch: reseed with last POI
+                        track_intf.oftdata.old_points = { old_poi_f };
+                        //track_lost_counter++;
+                    }
+                    else {
+                        // accept move
+                        track_intf.poi = new_poi;
+                        track_intf.defineRoi(new_poi);
+                        track_intf.oftdata.old_points = valid_points;
+                        track_intf.locked   = true;
+                        track_intf.locking  = false;
+                        track_lost_counter  = 0;
+                    }
                 }
-                // glitch: reseed with last POI
-                track_intf.oftdata.old_points = { old_poi_f };
-                //track_lost_counter++;
-            }
-            else {
-                // accept move
-                track_intf.poi = new_poi;
-                track_intf.defineRoi(new_poi);
-                track_intf.oftdata.old_points = valid_points;
-                track_intf.locked   = true;
-                track_intf.locking  = false;
-                track_lost_counter  = 0;
+
+                else {
+                    // No valid points: count loss, maybe break lock or reseed
+                    track_lost_counter++;
+                    if (settings.debug_print) {
+                        std::cout << "OFT lost track: no valid points "
+                                << track_lost_counter << std::endl;
+                    }
+                    if (settings.inputType == 4) {
+                        track_intf.breaklock();
+                    }
+                    else if (max_lost_search > -1 && track_lost_counter >= max_lost_search) {
+                        track_intf.breaklock();
+                        std::cout << "OFT lost track after " << max_lost_search
+                                << " frames" << std::endl;
+                        track_lost_counter = 0;
+                    }
+
+                }
+
+                if (!track_intf.track) {
+                    track_intf.locked = false;
+                }
+                prev_frame = processframe.clone();
             }
         }
-
-        else {
-            // No valid points: count loss, maybe break lock or reseed
-            track_lost_counter++;
-            if (settings.debug_print) {
-                std::cout << "OFT lost track: no valid points "
-                          << track_lost_counter << std::endl;
-            }
-            if (settings.inputType == 4) {
-                track_intf.breaklock();
-            }
-            else if (max_lost_search > -1 && track_lost_counter >= max_lost_search) {
-                track_intf.breaklock();
-                std::cout << "OFT lost track after " << max_lost_search
-                          << " frames" << std::endl;
-                track_lost_counter = 0;
-            }
-
-        }
-
-        if (!track_intf.track) {
-            track_intf.locked = false;
-        }
-        prev_frame = processframe.clone();
-    }
-    // else: tracking disabled for this frame
-}
 
 
         if (track_intf.locked) {

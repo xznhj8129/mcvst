@@ -20,6 +20,7 @@ void TrackInterface::Init(cv::Size cap_image_size, double scale) {
     maxits = settings.maxits;
     epsilon = settings.maxits;
     track = false;
+    track_srl = settings.track_srl;
     
     points_offset = 5.0f;
     point_tolerance = 0.5f;
@@ -97,7 +98,7 @@ void TrackInterface::moveRight() {
 }
 
 void TrackInterface::biggerBox() {
-    boxsize = std::max(20, boxsize - 10);
+    boxsize = std::max(10, boxsize - 5);
     roi.width = boxsize;
     roi.height = boxsize;
     lock_change = true;
@@ -105,7 +106,7 @@ void TrackInterface::biggerBox() {
 }
 
 void TrackInterface::smallerBox() {
-    boxsize = std::min(200, boxsize += 10);
+    boxsize = std::min(200, boxsize += 5);
     roi.width = boxsize;
     roi.height = boxsize;
     lock_change = true;
@@ -131,7 +132,7 @@ std::vector<cv::Point2f> TrackInterface::roiPoints() {
 }
 
 float TrackInterface::getPointsOffset() {
-    return std::round(boxsize / 10.0f); // 2.0f
+    return std::round(boxsize / 2.0f); // 2.0f
 }
 
 void TrackInterface::defineRoi(cv::Point2f newpoi) {

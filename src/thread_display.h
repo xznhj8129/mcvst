@@ -176,7 +176,7 @@ int display_thread(SharedData& sharedData) {
             if (settings.debug_print) {std::cout << "empty frame " << fc << std::endl;}
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } else {
-            if (settings.debug_print) {
+            if (settings.drawpoints) {
                 for (const auto& point : track_intf.roiPoints()) {
                     cv::circle(frame, point, 2, display_intf.osdcolor, -1);}
             }
