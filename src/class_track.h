@@ -53,6 +53,7 @@ class TrackInterface {
         void moveRight();
         void biggerBox();
         void smallerBox();
+        void resizeBox(int newsize);
         void update(cv::Point newtgt);
         void lock(const int x, const int y);
         void breaklock();

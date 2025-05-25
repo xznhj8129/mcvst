@@ -98,7 +98,7 @@ void TrackInterface::moveRight() {
 }
 
 void TrackInterface::biggerBox() {
-    boxsize = std::max(10, boxsize - 5);
+    boxsize = std::max(5, boxsize - 5);
     roi.width = boxsize;
     roi.height = boxsize;
     lock_change = true;
@@ -107,6 +107,14 @@ void TrackInterface::biggerBox() {
 
 void TrackInterface::smallerBox() {
     boxsize = std::min(200, boxsize += 5);
+    roi.width = boxsize;
+    roi.height = boxsize;
+    lock_change = true;
+    update(poi);
+}
+
+void TrackInterface::resizeBox(int newsize) {
+    boxsize = std::max(5,std::min(200, newsize));
     roi.width = boxsize;
     roi.height = boxsize;
     lock_change = true;

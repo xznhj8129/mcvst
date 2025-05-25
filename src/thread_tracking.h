@@ -35,6 +35,7 @@ int tracking_thread(SharedData& sharedData) {
     //oft specific
     cv::Mat prev_frame;
     cv::Mat prevGray; //////////////////
+    cv::Mat prev_raw;
     std::vector<cv::Point2f> corners;
     cv::TermCriteria termcrit;
 
@@ -50,6 +51,7 @@ int tracking_thread(SharedData& sharedData) {
 
         if (track_intf.image_scale!=1.0) {cv::resize(frame, processframe, process_size);}
         else {processframe = frame.clone();}
+        prev_raw = processframe.clone();
         cv::cvtColor(processframe, prev_frame, cv::COLOR_BGR2GRAY);
         //cv::goodFeaturesToTrack(prev_frame, corners, 100, 0.3, 7); //<configurable>
         termcrit = cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, settings.maxits, settings.epsilon); //<configurable>
@@ -93,21 +95,39 @@ int tracking_thread(SharedData& sharedData) {
 
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<cv::Point2f> new_points;
+    static std::deque<double> step_hist;
+    static std::deque<double> variance_hist;
+    // keep a history of the last 0.25 s worth of shifts
+    
 
     while (global_running and !finish_error) {
+        int window = 5;//std::max(1, static_cast<int>(fps * 0.25 + 0.50));
         frame_count++;
         total_frames++;
         auto startTime = std::chrono::steady_clock::now();
         bool passthrough = false;
+        std::cout << std::endl;
+        std::cout << "Frame " << total_frames << " ";
+        if (track_intf.track) {
+            std::cout << "Tracking";
+        }
 
         std::unique_lock<std::mutex> lock(sharedData.frameMutex);
         sharedData.frameCondVar.wait(lock, [&sharedData] { return sharedData.hasNewFrame.load(); });
         cv::Mat frame = sharedData.trackFrame.clone();
         lock.unlock();
 
+        cv::Mat resized;
         processframe = cv::Mat();
-        if (track_intf.image_scale!=1.0) {cv::resize(frame, processframe, process_size);}
-        else {processframe = frame.clone();}
+        if (track_intf.image_scale!=1.0) {cv::resize(frame, resized, process_size);}
+        else {resized = frame.clone();}
+        // Convert to grayscale & optional blur
+        cv::cvtColor(resized, processframe, cv::COLOR_BGR2GRAY);
+
+        if (settings.blur_size > 0) {
+            cv::GaussianBlur(processframe, processframe,
+                            cv::Size(settings.blur_size, settings.blur_size), 0);
+        }
 
         // Tracking algorithms below
         
@@ -116,13 +136,7 @@ int tracking_thread(SharedData& sharedData) {
         }
         else if (settings.trackerType >= 1) { // OFT (only this for now)
 
-            if (track_intf.track) {    
-                // Convert to grayscale & optional blur
-                cv::cvtColor(processframe, processframe, cv::COLOR_BGR2GRAY);
-                if (settings.blur_size > 0) {
-                    cv::GaussianBlur(processframe, processframe,
-                                    cv::Size(settings.blur_size, settings.blur_size), 0);
-                }
+            if (track_intf.track) { // & !anomaly
 
                 // Initialize points on first frame
                 if (track_intf.oftdata.old_points.empty()) {
@@ -155,9 +169,6 @@ int tracking_thread(SharedData& sharedData) {
                 }
 
                 if (!valid_points.empty()) {
-                    // keep a history of the last 0.25 s worth of shifts
-                    static std::deque<double> step_hist;
-                    int window = std::max(1, static_cast<int>(fps * 0.25 + 0.50));
                     
                     // compute median-based new POI as before
                     std::nth_element(valid_points.begin(),
@@ -172,66 +183,29 @@ int tracking_thread(SharedData& sharedData) {
                     float medianY = valid_points[valid_points.size()/2].y;
                     cv::Point2f new_poi(medianX, medianY);
 
-                    // compute this frame’s shift
-                    cv::Point2f old_poi_f(
-                        static_cast<float>(track_intf.poi.x),
-                        static_cast<float>(track_intf.poi.y)
-                    );
-                    double shift_rate = cv::norm(new_poi - old_poi_f);
-
-                    double avg_step = std::accumulate(step_hist.begin(), step_hist.end(), 0.0)
-                                    / step_hist.size();
-                    // push & trim history
-                    if (avg_step==0 || shift_rate < (avg_step * track_intf.track_srl * 2)) { // discard anomalies
-                        step_hist.push_back(shift_rate);
-                    }
-                    else {
-
-                            std::cout << "discard: " << shift_rate
-                                    << " > avg(" << window << ")=" << (avg_step * track_intf.track_srl * 2) << std::endl;
-                    }
-                    while ((int)step_hist.size() > window)
-                        step_hist.pop_front();
-
-                    // dynamic threshold = average shift over last 0.25 s
-                    avg_step = std::accumulate(step_hist.begin(), step_hist.end(), 0.0)
-                                    / step_hist.size();
-
-                    if (shift_rate > avg_step*track_intf.track_srl) {
-                        if (settings.debug_print) {
-                            std::cout << "POI rate limiter: " << shift_rate
-                                    << " > avg(" << window << ")=" << avg_step*track_intf.track_srl << std::endl;
-                        }
-                        // glitch: reseed with last POI
-                        track_intf.oftdata.old_points = { old_poi_f };
-                        //track_lost_counter++;
-                    }
-                    else {
-                        // accept move
-                        track_intf.poi = new_poi;
-                        track_intf.defineRoi(new_poi);
-                        track_intf.oftdata.old_points = valid_points;
-                        track_intf.locked   = true;
-                        track_intf.locking  = false;
-                        track_lost_counter  = 0;
-                    }
+                    track_intf.poi = new_poi;
+                    track_intf.defineRoi(new_poi);
+                    track_intf.oftdata.old_points = valid_points;
+                    track_intf.locked   = true;
+                    track_intf.locking  = false;
+                    track_lost_counter  = 0;
                 }
 
                 else {
                     // No valid points: count loss, maybe break lock or reseed
                     track_lost_counter++;
                     if (settings.debug_print) {
-                        std::cout << "OFT lost track: no valid points "
+                        std::cout << "OFT lost points: "
                                 << track_lost_counter << std::endl;
-                    }
-                    if (settings.inputType == 4) {
-                        track_intf.breaklock();
                     }
                     else if (max_lost_search > -1 && track_lost_counter >= max_lost_search) {
                         track_intf.breaklock();
                         std::cout << "OFT lost track after " << max_lost_search
                                 << " frames" << std::endl;
                         track_lost_counter = 0;
+                        if (settings.inputType == 4) {
+                            track_intf.breaklock();
+                        }
                     }
 
                 }
