@@ -95,22 +95,12 @@ int tracking_thread(SharedData& sharedData) {
 
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<cv::Point2f> new_points;
-    static std::deque<double> step_hist;
-    static std::deque<double> variance_hist;
-    // keep a history of the last 0.25 s worth of shifts
     
-
     while (global_running and !finish_error) {
-        int window = 5;//std::max(1, static_cast<int>(fps * 0.25 + 0.50));
         frame_count++;
         total_frames++;
         auto startTime = std::chrono::steady_clock::now();
         bool passthrough = false;
-        std::cout << std::endl;
-        std::cout << "Frame " << total_frames << " ";
-        if (track_intf.track) {
-            std::cout << "Tracking";
-        }
 
         std::unique_lock<std::mutex> lock(sharedData.frameMutex);
         sharedData.frameCondVar.wait(lock, [&sharedData] { return sharedData.hasNewFrame.load(); });
