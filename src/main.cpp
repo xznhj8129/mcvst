@@ -39,6 +39,8 @@ int main(int argc, char** argv) {
     outputThread.join();
     
     search_intf.shutdown();
-    cv::cuda::resetDevice();
+    if (settings.use_cuda) {
+        cv::cuda::resetDevice();
+    }
     return 0;
 }

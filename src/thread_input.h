@@ -22,22 +22,27 @@ Inputs:
 
 */
 
-std::string read_line_from_socket(int socket) {
+std::string read_line_from_socket(int socket_fd) {
     std::string line;
     char ch;
-    while (true) {
-        int n = recv(socket, &ch, 1, 0);
-        if (n <= 0) { // Error or disconnection
+    while (global_running) { // Check global_running
+        ssize_t n = recv(socket_fd, &ch, 1, 0); // clientSocket needs SO_RCVTIMEO
+        if (n < 0) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) { // Timeout
+                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Avoid busy spin
+                continue; // Re-check global_running
+            }
+            return ""; // Other errors
+        }
+        if (n == 0) { // Disconnection
             return "";
         }
         if (ch == '\n') {
             break;
         }
-        line += ch;
-    }
-    // Remove trailing '\r' for '\r\n' compatibility
-    if (!line.empty() && line.back() == '\r') {
-        line.pop_back();
+        if (ch != '\r') { // Append if not CR
+            line += ch;
+        }
     }
     return line;
 }
@@ -90,27 +95,27 @@ int input_thread(SharedData& sharedData) {
             char c;
             while (global_running) {
                 c = getchar();
-                int keyCode = 0; 
+                int keyCode = 0;
                 if (c == ' ') {
-                    input_intf.input_command(1);} 
+                    input_intf.input_command(1);}
                 else if (c == 27) { // ESC sequence for arrow keys
                     getchar(); // Skip the '['
                     c = getchar();
                     switch(c) {
-                        case 'A': 
+                        case 'A':
                             input_intf.input_command(3);
                             break; // Up arrow
-                        case 'B': 
+                        case 'B':
                             input_intf.input_command(4);
                             break; // Down arrow
-                        case 'C': 
+                        case 'C':
                             input_intf.input_command(6);
                             break; // Right arrow
-                        case 'D': 
+                        case 'D':
                             input_intf.input_command(5);
                             break; // Left arrow
-                        default: 
-                            keyCode = 27; 
+                        default:
+                            keyCode = 27;
                             global_running.store(false);
                             break; // ESC pressed
                     }
@@ -165,6 +170,9 @@ int input_thread(SharedData& sharedData) {
             timeout.tv_usec = 0;
 
             int selectResult = select(serverSocket + 1, &readSet, NULL, NULL, &timeout);
+
+            if (!global_running) break; // Exit if shutdown initiated during select
+
             if (selectResult < 0) {
                 perror("select");
                 break;
@@ -178,16 +186,29 @@ int input_thread(SharedData& sharedData) {
             int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientLen);
             if (clientSocket < 0) {
                 if (global_running) {
-                    std::cerr << "Error: Unable to accept client connection" << std::endl;
+                    perror("Error: Unable to accept client connection");
                 }
+                if (errno == EINTR && global_running) continue; // Interrupted, try again if running
+                if (!global_running) break; // If shutting down, exit loop
                 continue; // Try accepting another connection
+            }
+
+            // Set timeout for clientSocket operations
+            struct timeval clientTimeout;
+            clientTimeout.tv_sec = 1;
+            clientTimeout.tv_usec = 0;
+            if (setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&clientTimeout, sizeof(clientTimeout)) < 0) {
+                if (global_running) perror("setsockopt SO_RCVTIMEO for clientSocket in input_thread");
+                close(clientSocket);
+                if (!global_running) break;
+                continue;
             }
 
             int last_btn1 = 0;
             while (global_running) {
                 std::string line = read_line_from_socket(clientSocket);
                 if (line.empty()) {
-                    break; // Client disconnected
+                    break; // Client disconnected or global_running is false
                 }
 
                 try {
@@ -206,7 +227,7 @@ int input_thread(SharedData& sharedData) {
                 } catch (const std::exception& e) {
                     std::cerr << "Error parsing JSON: " << e.what() << std::endl;
                 }
-                send(clientSocket, "x", 1, 0);
+                send(clientSocket, "x", 1, 0); // Consider error handling for send
             }
 
             close(clientSocket);
@@ -225,7 +246,7 @@ int input_thread(SharedData& sharedData) {
         int last_btn1 = 0;
         while (global_running) {
             try {
-                TrackInputs inputs = read_from_fifo(settings.inputPath); 
+                TrackInputs inputs = read_from_fifo(settings.inputPath);
                 if (inputs.valid) {
                     input_intf.input_vec(inputs, last_btn1);
                     last_btn1 = inputs.lock;
