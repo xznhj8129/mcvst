@@ -197,6 +197,14 @@ int display_thread(SharedData& sharedData) {
                 display_intf.draw_search_detections(frame);
             }
 
+            if (settings.showCenter) {
+                cv::Point poi = cv::Point(track_intf.framesize.width/2, track_intf.framesize.height/2);
+                cv::line(frame, cv::Point(poi.x, 0), cv::Point(poi.x, poi.y - (track_intf.boxsize)),  display_intf.osdcolor, display_intf.linesize); // top
+                cv::line(frame, cv::Point(poi.x, track_intf.framesize.height), cv::Point(poi.x, poi.y + (track_intf.boxsize)),  display_intf.osdcolor, display_intf.linesize); // down
+                cv::line(frame, cv::Point(0, poi.y), cv::Point(poi.x - (track_intf.boxsize), poi.y),  display_intf.osdcolor, display_intf.linesize); //left
+                cv::line(frame, cv::Point(track_intf.framesize.width, poi.y),  cv::Point(poi.x + (track_intf.boxsize), poi.y),  display_intf.osdcolor, display_intf.linesize); // right
+            }
+
             if (settings.showFPS) {
                 if (frame_count >= 30) {
                     auto end = std::chrono::high_resolution_clock::now();

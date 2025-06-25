@@ -115,11 +115,30 @@ void DisplayInterface::draw_track(cv::Mat& frame) {
         cv::line(frame, cv::Point(track_intf.framesize.width, scaledpoi.y),  cv::Point(scaledpoi.x + (track_intf.boxsize/2), scaledpoi.y), osdcolor, linesize); // right
     }   
 
-    if (settings.trackMarker == 6 || settings.trackMarker == 3) { //lancet or corners
+    if (settings.trackMarker == 6 || settings.trackMarker == 3 || settings.trackMarker == 7) { //lancet or corners
         draw_cornerbox(frame, scaledpoi, track_intf.boxsize);
     }
 
-    if (settings.trackMarker == 6 ) { //lancet
+    if (settings.trackMarker == 7) { // interrupted crosshair
+        cv::line(frame, 
+            cv::Point(scaledpoi.x, scaledpoi.y - (track_intf.boxsize)), 
+            cv::Point(scaledpoi.x, scaledpoi.y - (track_intf.boxsize/2)), 
+            osdcolor, linesize); // top
+        cv::line(frame, 
+            cv::Point(scaledpoi.x, scaledpoi.y + (track_intf.boxsize/2)), 
+            cv::Point(scaledpoi.x, scaledpoi.y + (track_intf.boxsize)), 
+            osdcolor, linesize); // down
+        cv::line(frame, 
+            cv::Point(scaledpoi.x - (track_intf.boxsize/2), scaledpoi.y), 
+            cv::Point(scaledpoi.x - (track_intf.boxsize), scaledpoi.y), 
+            osdcolor, linesize); //left
+        cv::line(frame, 
+            cv::Point(scaledpoi.x + (track_intf.boxsize/2), scaledpoi.y),  
+            cv::Point(scaledpoi.x + (track_intf.boxsize), scaledpoi.y), 
+            osdcolor, linesize); // right
+    }   
+
+    if (settings.trackMarker == 6 || settings.trackMarker == 7 ) { //lancet
         //center cross
         cv::line(frame, cv::Point(scaledpoi.x - (track_intf.boxsize/5) , scaledpoi.y), cv::Point(scaledpoi.x + (track_intf.boxsize / 5), scaledpoi.y), osdcolor, linesize);
         cv::line(frame, cv::Point(scaledpoi.x, scaledpoi.y - (track_intf.boxsize/5)), cv::Point(scaledpoi.x, scaledpoi.y + (track_intf.boxsize/5)), osdcolor, linesize);

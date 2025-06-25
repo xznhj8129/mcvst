@@ -48,6 +48,7 @@ class SettingsClass {
         std::string osdColor;
         int osdLinesize;
         bool showPipper;
+        bool showCenter;
         bool drawpoints;
 
         int capWB;

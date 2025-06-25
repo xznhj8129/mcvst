@@ -92,6 +92,7 @@ void SettingsClass::Init(int argc, char** argv) {
                 line = "maxits";              maxits = config.lookup(line);
                 line = "blur_size";           blur_size = config.lookup(line);
                 line = "markertype";          markertype = config.lookup(line).c_str();
+                line = "centercross";         showCenter = config.lookup(line);
                 line = "pipper";              showPipper = config.lookup(line);
                 line = "drawpoints";          drawpoints = config.lookup(line);
                 line = "slew_rate_limit";     track_srl = config.lookup(line);
@@ -173,6 +174,7 @@ void SettingsClass::Init(int argc, char** argv) {
     else if (markertype == "walleye")             { trackMarker = 4; }
     else if (markertype == "maverick")            { trackMarker = 5; }
     else if (markertype == "lancet")              { trackMarker = 6; }
+    else if (markertype == "uav")              { trackMarker = 7; }
 
     if (tracktype == "" || tracktype=="none") { trackerType = 0; }
     else if (tracktype == "oft")              { trackerType = 1; }
